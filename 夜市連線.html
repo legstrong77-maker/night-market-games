@@ -1,0 +1,3312 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0a14">
+<title>夜市連線賓果 · 文化路</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a14;
+  --bg-panel: #151522;
+  --bg-elev: #1e1e2e;
+  --bg-card: #22222f;
+  --bg-glass: rgba(21, 21, 34, 0.88);
+  --text: #f5f5f7;
+  --text-dim: #9b9bb0;
+  --text-mute: #5a5a70;
+  --border: #2d2d42;
+
+  --red: #ff3860;
+  --red-bright: #ff6b87;
+  --red-soft: rgba(255, 56, 96, 0.18);
+  --red-glow: rgba(255, 56, 96, 0.5);
+  --blue: #3aa0ff;
+  --blue-bright: #70baff;
+  --blue-soft: rgba(58, 160, 255, 0.18);
+  --blue-glow: rgba(58, 160, 255, 0.5);
+  --gold: #ffd15a;
+  --gold-glow: rgba(255, 209, 90, 0.55);
+  --green: #43d787;
+  --danger: #ff5c5c;
+  --purple: #a875ff;
+
+  --radius: 14px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
+  overscroll-behavior-y: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 500px at 20% -10%, rgba(168, 117, 255, 0.14), transparent 50%),
+    radial-gradient(900px 500px at 80% 110%, rgba(67, 215, 135, 0.1), transparent 50%),
+    radial-gradient(600px 300px at 50% 50%, rgba(255, 209, 90, 0.04), transparent 60%),
+    var(--bg);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 12px 180px;
+  min-height: 100vh;
+  position: relative;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea {
+  font-family: inherit;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 10px;
+  outline: none;
+  font-size: 16px;
+  width: 100%;
+  user-select: text;
+  -webkit-user-select: text;
+}
+textarea { min-height: 80px; resize: vertical; }
+input:focus, textarea:focus { border-color: var(--gold); }
+
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ SETUP ============ */
+.hero {
+  text-align: center;
+  padding: 36px 16px 20px;
+}
+.hero-title {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  background: linear-gradient(120deg, #a875ff, #ffd15a 50%, #43d787);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 6px;
+}
+.hero-sub { color: var(--text-dim); font-size: 13px; margin-bottom: 6px; }
+.hero-loc {
+  color: var(--gold);
+  font-size: 12px;
+  letter-spacing: 2px;
+  padding: 4px 12px;
+  display: inline-block;
+  border: 1px solid var(--gold);
+  border-radius: 20px;
+}
+
+.setup-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 10px;
+}
+.setup-card h3 {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.team-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+.team-row:last-child { margin-bottom: 0; }
+.team-dot {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 20px; color: white;
+}
+.team-dot.red { background: linear-gradient(135deg, var(--red), var(--red-bright)); box-shadow: 0 0 24px var(--red-glow); }
+.team-dot.blue { background: linear-gradient(135deg, var(--blue), var(--blue-bright)); box-shadow: 0 0 24px var(--blue-glow); }
+
+.option-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.option-chip {
+  padding: 10px 8px;
+  background: var(--bg-elev);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+.option-chip.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255, 209, 90, 0.1);
+}
+.option-chip:active { transform: scale(0.97); }
+
+.rules-compact {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+.rules-compact li { list-style: none; display: flex; gap: 8px; }
+.rules-compact li::before { content: "▸"; color: var(--gold); flex-shrink: 0; }
+.rules-compact strong { color: var(--text); }
+
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, var(--purple), var(--gold) 90%);
+  color: white;
+  font-size: 18px;
+  font-weight: 900;
+  padding: 18px;
+  border-radius: 14px;
+  letter-spacing: 4px;
+  box-shadow: var(--shadow), 0 0 24px rgba(168, 117, 255, 0.3);
+  transition: transform 0.12s;
+  margin-top: 10px;
+}
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-ghost {
+  width: 100%;
+  background: var(--bg-elev);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-mute);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ============ SCOREBOARD ============ */
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 8px;
+  margin: -4px -4px 8px;
+  z-index: 10;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.score-card {
+  background: var(--bg-panel);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  text-align: center;
+  transition: all 0.3s;
+}
+.score-card.red { border-color: var(--red); }
+.score-card.blue { border-color: var(--blue); }
+.score-card.active {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 3px currentColor, 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+.score-card.active.red { color: var(--red); background: linear-gradient(180deg, var(--red-soft), var(--bg-panel)); }
+.score-card.active.blue { color: var(--blue); background: linear-gradient(180deg, var(--blue-soft), var(--bg-panel)); }
+
+.score-team {
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  color: var(--text-dim);
+}
+.score-card.red .score-team { color: var(--red-bright); }
+.score-card.blue .score-team { color: var(--blue-bright); }
+.score-value {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.score-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.vs-label {
+  align-self: center;
+  font-weight: 900;
+  color: var(--gold);
+  font-size: 16px;
+  padding: 0 4px;
+  text-shadow: 0 0 12px var(--gold-glow);
+}
+
+/* ============ TURN BANNER ============ */
+.turn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+}
+.turn-banner.red { border-color: var(--red); color: var(--red-bright); background: linear-gradient(90deg, var(--red-soft), transparent 80%, var(--red-soft)); }
+.turn-banner.blue { border-color: var(--blue); color: var(--blue-bright); background: linear-gradient(90deg, var(--blue-soft), transparent 80%, var(--blue-soft)); }
+
+.turn-pulse {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.5); }
+}
+.turn-tip {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+/* ============ GRID ============ */
+.grid-wrap {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px;
+  margin-bottom: 10px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 7), 1fr);
+  gap: 3px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 2px;
+}
+.cell:active { transform: scale(0.94); }
+.cell.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(255, 209, 90, 0.3), 0 0 24px var(--gold-glow);
+  transform: scale(1.06);
+  z-index: 2;
+  background: linear-gradient(160deg, rgba(255, 209, 90, 0.35), rgba(168, 117, 255, 0.2));
+}
+.cell.boss {
+  border-color: rgba(255, 56, 96, 0.6);
+}
+.cell.claimed-red {
+  background: linear-gradient(145deg, var(--red), #c01b3f);
+  border-color: var(--red-bright);
+  color: white;
+}
+.cell.claimed-blue {
+  background: linear-gradient(145deg, var(--blue), #1e7dcc);
+  border-color: var(--blue-bright);
+  color: white;
+}
+.cell.claimed-red .cell-name,
+.cell.claimed-blue .cell-name { color: white; }
+.cell.winning {
+  animation: winPulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 0 3px var(--gold), 0 0 30px var(--gold-glow);
+  z-index: 3;
+}
+@keyframes winPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 3px var(--gold), 0 0 30px var(--gold-glow); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 4px var(--gold), 0 0 48px var(--gold-glow); }
+}
+
+.cell-emoji {
+  font-size: clamp(18px, 4.5vw, 26px);
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+}
+.cell-name {
+  font-size: 8.5px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.1;
+  margin-top: 2px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: var(--text);
+  max-width: 100%;
+  word-break: break-all;
+}
+
+/* subtle photo thumb background for claimed cells */
+.cell .cell-photo {
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  width: 100%; height: 100%;
+  opacity: 0.38;
+  pointer-events: none;
+}
+.cell.claimed-red .cell-emoji,
+.cell.claimed-blue .cell-emoji {
+  position: relative;
+  z-index: 1;
+}
+.cell.claimed-red .cell-name,
+.cell.claimed-blue .cell-name {
+  position: relative;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.cell-badge-tl, .cell-badge-tr, .cell-badge-bl, .cell-badge-br {
+  position: absolute;
+  font-size: 10px;
+  line-height: 1;
+  z-index: 2;
+}
+.cell-badge-tl { top: 2px; left: 2px; }
+.cell-badge-tr { top: 2px; right: 2px; }
+.cell-badge-bl { bottom: 2px; left: 2px; }
+.cell-badge-br { bottom: 2px; right: 2px; }
+.cell-badge-tr.boss-star { color: var(--gold); font-size: 11px; filter: drop-shadow(0 0 4px var(--gold)); }
+.cell-badge-tl.swap-used { color: var(--purple); opacity: 0.8; }
+.cell-badge-br.custom { color: var(--green); font-size: 10px; }
+
+/* ============ STATS STRIP ============ */
+.stats-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.stat-item {
+  text-align: center;
+  padding: 6px;
+}
+.stat-val {
+  font-size: 18px;
+  font-weight: 900;
+}
+.stat-lbl {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ============ ACTION BAR ============ */
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding: 10px 12px env(safe-area-inset-bottom);
+  z-index: 30;
+}
+
+.selected-row {
+  display: none;
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-elev));
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 -4px 20px var(--gold-glow);
+}
+.selected-row.show { display: flex; animation: slideUp 0.25s ease; }
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+}
+
+.selected-emoji {
+  font-size: 32px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+.selected-info { flex: 1; min-width: 0; }
+.selected-name { font-size: 15px; font-weight: 900; margin-bottom: 2px; }
+.selected-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.selected-boss {
+  background: var(--red);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.selected-pos {
+  background: var(--bg-elev);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--text);
+  font-weight: 700;
+}
+.selected-custom {
+  background: var(--green);
+  color: #000;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.btn-photo {
+  width: 44px; height: 44px;
+  background: var(--bg-elev);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+.btn-photo.has-photo {
+  border-color: var(--green);
+  box-shadow: 0 0 12px rgba(67, 215, 135, 0.4);
+}
+.btn-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+.btn-confirm {
+  background: linear-gradient(135deg, var(--green), #2eb370);
+  color: white;
+  padding: 12px 16px;
+  font-weight: 900;
+  border-radius: 10px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(67, 215, 135, 0.3);
+  white-space: nowrap;
+}
+.btn-swap {
+  background: linear-gradient(135deg, var(--purple), #7d4dc7);
+  color: white;
+  padding: 12px 14px;
+  font-weight: 900;
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.btn-swap:disabled {
+  background: var(--bg-elev);
+  color: var(--text-mute);
+  cursor: not-allowed;
+}
+.btn-cancel {
+  background: transparent;
+  color: var(--text-dim);
+  padding: 8px 4px;
+  font-size: 18px;
+}
+
+.action-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.action-row .btn {
+  flex: 1;
+  padding: 10px 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.action-row .btn:active { transform: scale(0.97); }
+.action-row .btn-skip { color: var(--text-dim); }
+.action-row .btn-end { color: var(--text); }
+.action-row .btn-addfood { color: var(--green); border-color: rgba(67, 215, 135, 0.5); }
+
+/* ============ TOAST ============ */
+.toast-container {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 92vw;
+}
+.toast {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: 10px 18px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  animation: toast-in 0.3s ease, toast-out 0.3s ease 2.6s forwards;
+  white-space: nowrap;
+  text-align: center;
+}
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.bonus { border-color: var(--gold); color: var(--gold); }
+.toast.error { border-color: var(--danger); color: var(--danger); }
+.toast.purple { border-color: var(--purple); color: var(--purple); }
+@keyframes toast-in { from { transform: translateY(-20px); opacity: 0; } }
+@keyframes toast-out { to { transform: translateY(-20px); opacity: 0; } }
+
+/* ============ MODAL ============ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 80;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+  background: var(--bg-panel);
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  animation: slideUpLg 0.28s ease;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  position: relative;
+}
+@keyframes slideUpLg { from { transform: translateY(100%); } }
+.modal h2 { margin-bottom: 12px; font-size: 18px; }
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--bg-elev);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 2;
+}
+
+/* ============ WIN SCREEN ============ */
+.winner-banner {
+  text-align: center;
+  padding: 32px 16px;
+  background: linear-gradient(135deg, var(--gold-glow), rgba(168, 117, 255, 0.25));
+  border: 2px solid var(--gold);
+  border-radius: 20px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.winner-crown {
+  font-size: 72px;
+  animation: crownBounce 2s ease-in-out infinite;
+}
+@keyframes crownBounce {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+.winner-name {
+  font-size: 30px;
+  font-weight: 900;
+  margin: 4px 0;
+}
+.winner-score {
+  font-size: 14px;
+  color: var(--text);
+  margin-top: 6px;
+}
+
+.win-line-display {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(64px, 1fr);
+  gap: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+}
+.win-line-cell {
+  aspect-ratio: 1;
+  background: var(--bg-card);
+  border: 2px solid var(--gold);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.win-line-cell.red { background: linear-gradient(145deg, var(--red), #c01b3f); color: white; }
+.win-line-cell.blue { background: linear-gradient(145deg, var(--blue), #1e7dcc); color: white; }
+.win-line-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
+.win-line-cell .wc-emoji { font-size: 24px; position: relative; z-index: 1; }
+.win-line-cell .wc-name { font-size: 9px; font-weight: 800; text-align: center; line-height: 1.1; margin-top: 2px; position: relative; z-index: 1; background: rgba(0,0,0,0.45); padding: 1px 3px; border-radius: 3px; max-width: 100%; }
+
+.result-card {
+  background: var(--bg-panel);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.result-card.red { border-color: var(--red); }
+.result-card.blue { border-color: var(--blue); }
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.result-header h3 { font-size: 17px; font-weight: 900; }
+.result-header .pts { font-size: 20px; font-weight: 900; }
+.result-card.red .pts { color: var(--red-bright); }
+.result-card.blue .pts { color: var(--blue-bright); }
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.rstat {
+  background: var(--bg-elev);
+  padding: 8px 4px;
+  border-radius: 8px;
+  text-align: center;
+}
+.rstat-val { font-size: 18px; font-weight: 900; }
+.rstat-lbl { font-size: 10px; color: var(--text-dim); }
+
+.claimed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+}
+.claimed-grid .cell {
+  cursor: pointer;
+  aspect-ratio: 1;
+}
+
+/* ============ CONFETTI ============ */
+.confetti {
+  position: fixed;
+  top: -20px;
+  width: 10px;
+  height: 18px;
+  z-index: 90;
+  pointer-events: none;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ============ MISC ============ */
+.hidden { display: none !important; }
+.small-muted { font-size: 12px; color: var(--text-dim); }
+.divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+/* Make grid cells slightly larger on wider screens */
+@media (min-width: 500px) {
+  .cell-name { font-size: 10px; }
+}
+
+/* ============================================================
+   RETRO-FUTURISM DESIGN SYSTEM
+   generated via ui-ux-pro-max skill (entertainment/gaming)
+   Style: Retro-Futurism ・ Palette: Neon purple + rose action
+   Typography: Fredoka (headings) + Nunito (body)
+   Effects: CRT scanlines ・ Neon glow ・ Synthwave gradients
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* ui-ux-pro-max: Retro-Futurism palette */
+  --rf-primary:    #7C3AED;
+  --rf-secondary:  #A78BFA;
+  --rf-accent:     #F43F5E;
+  --rf-cyan:       #22D3EE;
+  --rf-gold:       #FFD15A;
+
+  /* Override surface tokens */
+  --bg:         #0F0F23;
+  --bg-panel:   #1a1a2e;
+  --bg-elev:    #27273B;
+  --bg-card:    #2d2d42;
+  --bg-glass:   rgba(26, 26, 46, 0.88);
+
+  --text:       #E2E8F0;
+  --text-dim:   #94A3B8;
+  --text-mute:  #64748B;
+
+  --border:      rgba(124, 58, 237, 0.32);
+  --border-soft: rgba(124, 58, 237, 0.18);
+
+  /* Team colors — harmonized to palette */
+  --red:         #F43F5E;
+  --red-bright:  #FB7185;
+  --red-glow:    rgba(244, 63, 94, 0.55);
+  --red-soft:    rgba(244, 63, 94, 0.18);
+  --blue:        #22D3EE;
+  --blue-bright: #67E8F9;
+  --blue-glow:   rgba(34, 211, 238, 0.55);
+  --blue-soft:   rgba(34, 211, 238, 0.18);
+
+  --gold:        #FFD15A;
+  --gold-glow:   rgba(255, 209, 90, 0.55);
+  --green:       #22C55E;
+  --danger:      #EF4444;
+  --purple:      #7C3AED;
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    150ms;
+  --dur-base:    250ms;
+  --dur-slow:    400ms;
+  --ring-focus:  0 0 0 3px rgba(124, 58, 237, 0.45);
+}
+
+/* ─── Typography ─── */
+html, body {
+  font-family: 'Nunito', "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", -apple-system, sans-serif;
+  font-weight: 500;
+  color: var(--text);
+}
+.hero-title, .hero-sub, .setup-card h3,
+.score-value, .winner-name, .winner-score,
+#turn-label, .cell-name, .food-name,
+.btn-primary, .btn-confirm,
+.selected-name, .modal h2,
+.option-chip, .filter-chip {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+}
+
+/* ─── Body atmosphere + CRT scanlines (integrated into bg, no overlay) ─── */
+body {
+  background-color: #0F0F23;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      rgba(124, 58, 237, 0.05) 2px,
+      rgba(124, 58, 237, 0.05) 3px
+    ),
+    radial-gradient(1400px 800px at 15% -10%, rgba(124, 58, 237, 0.22), transparent 55%),
+    radial-gradient(1200px 700px at 85% 110%, rgba(244, 63, 94, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 50% 50%, rgba(34, 211, 238, 0.08), transparent 65%),
+    linear-gradient(180deg, #0F0F23 0%, #0a0a14 100%);
+  background-attachment: fixed, scroll, scroll, scroll, scroll;
+  position: relative;
+}
+
+/* ─── Hero ─── */
+.hero-title {
+  font-weight: 700;
+  font-size: clamp(44px, 11vw, 60px);
+  letter-spacing: 6px;
+  background: linear-gradient(120deg, #A78BFA 0%, #F43F5E 50%, #FFD15A 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 48px rgba(124, 58, 237, 0.5), 0 0 64px rgba(244, 63, 94, 0.3);
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));
+}
+.hero-sub { font-weight: 600; color: var(--text-dim); letter-spacing: 2px; }
+.hero-loc {
+  color: var(--gold);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 16px rgba(255, 209, 90, 0.4), inset 0 0 16px rgba(255, 209, 90, 0.12);
+  text-shadow: 0 0 12px rgba(255, 209, 90, 0.6);
+  font-weight: 700;
+}
+
+/* ─── Score cards ─── */
+.score-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out);
+  border-width: 2px;
+}
+.score-card.active { transform: translateY(-3px); }
+.score-card.active.red  { box-shadow: 0 0 40px var(--red-glow),  0 8px 24px rgba(0,0,0,0.4); }
+.score-card.active.blue { box-shadow: 0 0 40px var(--blue-glow), 0 8px 24px rgba(0,0,0,0.4); }
+.score-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-size: clamp(28px, 6.5vw, 38px);
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.25);
+}
+.score-card.red  .score-team { text-shadow: 0 0 8px rgba(244, 63, 94, 0.6); }
+.score-card.blue .score-team { text-shadow: 0 0 8px rgba(34, 211, 238, 0.6); }
+
+/* ─── Primary button ─── */
+.btn-primary {
+  font-weight: 700;
+  letter-spacing: 3px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 32px rgba(124, 58, 237, 0.4);
+  transition: transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out),
+              filter var(--dur-base) var(--ease-out);
+}
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.28) 50%, transparent 70%);
+  transform: translateX(-110%);
+  transition: transform 0.7s var(--ease-out);
+  pointer-events: none;
+}
+.btn-primary:hover::after { transform: translateX(110%); }
+.btn-primary:hover { filter: brightness(1.12) saturate(1.15); }
+.btn-primary:active { transform: scale(0.97); }
+
+/* ─── Turn banner — neon pulse ─── */
+.turn-banner { box-shadow: inset 0 0 48px rgba(124, 58, 237, 0.15); }
+.turn-banner.red  { box-shadow: inset 0 0 48px var(--red-soft); }
+.turn-banner.blue { box-shadow: inset 0 0 48px var(--blue-soft); }
+
+/* ─── Option chip (setup) ─── */
+.option-chip {
+  font-weight: 700;
+  transition: transform var(--dur-fast) var(--ease-spring),
+              border-color var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease-out),
+              color var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) {
+  .option-chip:hover:not(.active) {
+    border-color: var(--gold);
+    color: var(--gold);
+    transform: translateY(-1px);
+    box-shadow: 0 0 16px rgba(255, 209, 90, 0.25);
+  }
+}
+.option-chip.active {
+  text-shadow: 0 0 8px currentColor;
+  box-shadow: 0 0 20px rgba(255, 209, 90, 0.35);
+}
+
+/* ─── Grid cell — neon tiles ─── */
+.cell {
+  transition: transform var(--dur-fast) var(--ease-spring),
+              border-color var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) {
+  .cell:hover:not(.claimed-red):not(.claimed-blue) {
+    border-color: var(--rf-accent);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 20px rgba(244, 63, 94, 0.3);
+    transform: translateY(-2px);
+  }
+}
+.cell.claimed-red,
+.cell.claimed-blue {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Winning — dramatic pulse */
+.cell.winning {
+  animation: rf-winPulse 1.1s ease-in-out infinite;
+}
+@keyframes rf-winPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px var(--gold), 0 0 30px var(--gold-glow);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px var(--gold), 0 0 56px rgba(255, 209, 90, 0.95);
+  }
+}
+
+/* ─── Photo / swap / confirm buttons ─── */
+.btn-photo, .btn-swap, .btn-confirm {
+  transition: transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out),
+              border-color var(--dur-base) var(--ease-out),
+              filter var(--dur-base) var(--ease-out);
+}
+.btn-confirm:not(:disabled):hover { filter: brightness(1.12) saturate(1.15); }
+.btn-confirm:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35), 0 0 20px rgba(34, 197, 94, 0.3);
+}
+.btn-swap {
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35), 0 0 20px rgba(124, 58, 237, 0.25);
+}
+.btn-swap:hover:not(:disabled) { filter: brightness(1.15); }
+
+/* ─── Inputs ─── */
+input, textarea {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 500;
+  transition: border-color var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+input:focus, textarea:focus {
+  border-color: var(--rf-primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.28), 0 0 24px rgba(124, 58, 237, 0.25);
+  outline: none;
+}
+
+/* ─── Toast ─── */
+.toast {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-weight: 700;
+  text-shadow: 0 0 6px currentColor;
+}
+
+/* ─── Action bar ─── */
+.action-bar { box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.4), 0 -1px 0 var(--border); }
+
+/* ─── Winner banner ─── */
+.winner-crown { filter: drop-shadow(0 8px 24px rgba(255, 209, 90, 0.6)); }
+.winner-name {
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: linear-gradient(120deg, #FFD15A, #F43F5E, #A78BFA);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 12px rgba(255, 209, 90, 0.5));
+}
+.winner-banner {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(244, 63, 94, 0.3), rgba(255, 209, 90, 0.25));
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 60px rgba(124, 58, 237, 0.35), 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Win-line display ─── */
+.win-line-cell { box-shadow: 0 0 24px var(--gold-glow), 0 4px 12px rgba(0, 0, 0, 0.4); }
+
+/* ─── Accessibility ─── */
+button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: 10px;
+}
+button:focus:not(:focus-visible) { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html { scroll-behavior: smooth; }
+
+/* ─── MULTI-DEVICE MODE ─── */
+.mp-lock {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding: 20px;
+  background: linear-gradient(180deg, rgba(15,15,35,0) 0%, rgba(15,15,35,0.92) 40%);
+  z-index: 25;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.mp-lock-inner {
+  background: var(--bg-panel);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 14px 20px;
+  text-align: center;
+  box-shadow: 0 0 40px var(--gold-glow);
+  animation: mp-pulse 2s ease-in-out infinite;
+  max-width: 320px;
+  width: 100%;
+}
+@keyframes mp-pulse {
+  0%, 100% { transform: translateY(0); box-shadow: 0 0 40px var(--gold-glow); }
+  50%      { transform: translateY(-4px); box-shadow: 0 0 56px var(--gold-glow); }
+}
+.mp-lock-title {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--gold);
+  margin: 4px 0;
+  letter-spacing: 2px;
+}
+.mp-lock-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.mp-chip {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 40;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mp-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+.mp-chip.online .dot { background: var(--green); box-shadow: 0 0 8px var(--green); animation: mp-blink 1.5s infinite; }
+.mp-chip.offline .dot { background: var(--danger); }
+.mp-chip.waiting .dot { background: var(--gold); animation: mp-blink 1s infinite; }
+@keyframes mp-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* Legacy polish block below is kept for non-overlapping selectors */
+:root {
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+  --glow-red: 0 0 40px rgba(255, 56, 96, 0.45);
+  --glow-blue: 0 0 40px rgba(58, 160, 255, 0.45);
+  --glow-gold: 0 0 40px rgba(255, 209, 90, 0.55);
+  --glow-purple: 0 0 40px rgba(168, 117, 255, 0.45);
+  --ring-focus: 0 0 0 3px rgba(255, 209, 90, 0.35);
+}
+
+body {
+  background:
+    radial-gradient(1400px 800px at 15% -10%, rgba(168, 117, 255, 0.16), transparent 55%),
+    radial-gradient(1200px 700px at 85% 110%, rgba(67, 215, 135, 0.1), transparent 55%),
+    radial-gradient(900px 500px at 50% 50%, rgba(255, 209, 90, 0.06), transparent 65%),
+    linear-gradient(180deg, #0b0712 0%, #0a0a14 100%);
+}
+
+.hero-title {
+  font-size: clamp(36px, 9vw, 44px);
+  letter-spacing: 4px;
+  text-shadow: 0 0 48px rgba(168, 117, 255, 0.35);
+}
+.hero-loc {
+  box-shadow: 0 0 16px rgba(255, 209, 90, 0.22);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.score-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease-out);
+}
+.score-card.active { transform: translateY(-3px); }
+.score-card.active.red  { box-shadow: var(--glow-red),  0 8px 24px rgba(0,0,0,0.45); }
+.score-card.active.blue { box-shadow: var(--glow-blue), 0 8px 24px rgba(0,0,0,0.45); }
+.score-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out),
+              filter var(--dur-base) var(--ease-out);
+}
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
+  transform: translateX(-110%);
+  transition: transform 0.7s var(--ease-out);
+  pointer-events: none;
+}
+.btn-primary:hover::after { transform: translateX(110%); }
+.btn-primary:hover { filter: brightness(1.08); }
+
+.turn-banner { box-shadow: inset 0 0 48px rgba(0, 0, 0, 0.12); }
+
+.option-chip {
+  transition: transform var(--dur-fast) var(--ease-spring),
+              border-color var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease-out),
+              color var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) {
+  .option-chip:hover:not(.active) {
+    border-color: var(--gold);
+    color: var(--gold);
+    transform: translateY(-1px);
+  }
+}
+
+/* Grid cell: smoother selection / claim */
+.cell {
+  transition: transform var(--dur-fast) var(--ease-spring),
+              border-color var(--dur-base) var(--ease-out),
+              background var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) {
+  .cell:hover:not(.claimed-red):not(.claimed-blue) {
+    border-color: var(--gold);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 20px rgba(255, 209, 90, 0.2);
+  }
+}
+
+/* Photo button — smoother state shift */
+.btn-photo, .btn-swap, .btn-confirm {
+  transition: transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out),
+              border-color var(--dur-base) var(--ease-out),
+              filter var(--dur-base) var(--ease-out);
+}
+.btn-confirm:not(:disabled):hover { filter: brightness(1.08); }
+
+input, textarea {
+  transition: border-color var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+input:focus, textarea:focus {
+  border-color: var(--gold);
+  box-shadow: var(--ring-focus);
+  outline: none;
+}
+
+.toast {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-weight: 800;
+}
+
+.action-bar { box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.35); }
+
+.winner-crown { filter: drop-shadow(0 8px 24px rgba(255, 209, 90, 0.45)); }
+
+/* Winning-line cells — dramatic pulse amp */
+.cell.winning {
+  animation: winPulse 1.1s ease-in-out infinite;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: 10px;
+}
+button:focus:not(:focus-visible) { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ============ SETUP ============ -->
+<section id="screen-setup" class="screen active">
+  <div class="hero">
+    <a href="index.html" style="display:inline-block; margin-bottom:12px; color:var(--text-dim); text-decoration:none; font-size:14px; font-weight:700; transition: color 0.2s;">⬅ 回首頁</a>
+    <div class="hero-title">夜市連線</div>
+    <div class="hero-sub">畢業之旅・7×7 賓果連線戰</div>
+    <div class="hero-loc">嘉義 · 文化路夜市</div>
+  </div>
+
+  <div class="setup-card">
+    <h3>隊伍名稱</h3>
+    <div class="team-row">
+      <div class="team-dot red">紅</div>
+      <input id="setup-red" type="text" placeholder="紅隊名稱" maxlength="8">
+    </div>
+    <div class="team-row">
+      <div class="team-dot blue">藍</div>
+      <input id="setup-blue" type="text" placeholder="藍隊名稱" maxlength="8">
+    </div>
+  </div>
+
+  <div class="setup-card">
+    <h3>勝利模式</h3>
+    <div class="option-row" id="opt-mode">
+      <button class="option-chip active" data-opt="feast">🍜 嗑爽戰<div class="small-muted" style="font-weight:500">盡量吃・累積連線多者勝</div></button>
+      <button class="option-chip" data-opt="blitz">⚡ 閃電戰<div class="small-muted" style="font-weight:500">先連 N 子立即獲勝</div></button>
+    </div>
+  </div>
+
+  <div class="setup-card">
+    <h3>連線長度</h3>
+    <div class="option-row" id="opt-target">
+      <button class="option-chip" data-opt="4">🏃 4 子<div class="small-muted" style="font-weight:500">容易</div></button>
+      <button class="option-chip active" data-opt="5">🎯 5 子<div class="small-muted" style="font-weight:500">推薦</div></button>
+      <button class="option-chip" data-opt="6">🔥 6 子<div class="small-muted" style="font-weight:500">硬漢</div></button>
+    </div>
+  </div>
+
+  <div class="setup-card">
+    <h3>加入自訂食物（選填）</h3>
+    <textarea id="custom-foods" placeholder="把你想吃的小吃加進格子 (每行一個，或用逗號分隔)&#10;例如：&#10;雞腳凍&#10;紅豆餅&#10;鹹酥雞, 棺材板, 蛋餅"></textarea>
+    <div class="hint">💡 加入的食物會混入 63 道文化路小吃中隨機排進格子</div>
+  </div>
+
+  <div class="setup-card">
+    <h3>玩法</h3>
+    <ul class="rules-compact">
+      <li>7×7 格子，各格<strong>唯一</strong>一道食物（不重複）</li>
+      <li>你回合：<strong>點一格 → 拍照 → 確認占領</strong>（拍照必填 📸）</li>
+      <li>那格不想吃？按 <strong>🔄 換</strong>，每格最多可換 <strong>2 次</strong></li>
+      <li>不爽整體棋盤？按 <strong>🔀 洗牌</strong> 重新隨機</li>
+      <li>🍜 <strong>嗑爽戰</strong>：盡量吃，每完成一條 N 子連線 <strong>+20 分</strong>，棋盤填滿／結算時連線多者勝</li>
+      <li>⚡ <strong>閃電戰</strong>：先連成 N 子連線（橫／直／斜）立即獲勝</li>
+      <li>格子一旦被占領就凍結，對手不能搶</li>
+      <li>⭐ Boss 小吃額外 <strong>+10 分</strong>；每 <strong>30 分鐘</strong>自動隨機輪換 5 道，或按 <strong>⭐ 換星</strong> 手動換</li>
+    </ul>
+  </div>
+
+  <div class="setup-card">
+    <h3>連線方式</h3>
+    <div class="option-row" id="opt-mp">
+      <button class="option-chip active" data-mp="local">🎮 單機傳遞<div class="small-muted" style="font-weight:500">一支手機輪流</div></button>
+      <button class="option-chip" data-mp="host">👑 主持 (紅)<div class="small-muted" style="font-weight:500">開房間給對手</div></button>
+      <button class="option-chip" data-mp="guest">✈️ 加入 (藍)<div class="small-muted" style="font-weight:500">輸入對手房號</div></button>
+    </div>
+    <div id="mp-guest-box" class="hidden" style="margin-top:12px;">
+      <input id="mp-code-input" type="text" inputmode="numeric" pattern="\d*" maxlength="4"
+             placeholder="輸入 4 位房號"
+             style="text-align:center; font-size:28px; letter-spacing:10px; font-family:'Fredoka',sans-serif; font-weight:700;">
+    </div>
+    <div class="hint" id="mp-hint" style="display:none;">💡 對手在另一支手機打開同一檔案，選對應的角色</div>
+  </div>
+
+  <button class="btn-primary" id="btn-start">生 成 棋 盤</button>
+  <button class="btn-ghost" id="btn-resume" style="display:none;">繼續上次遊戲</button>
+</section>
+
+<!-- ============ GAME ============ -->
+<section id="screen-game" class="screen">
+  <div class="scoreboard">
+    <div class="score-card red" id="score-red">
+      <div class="score-team" id="name-red">紅隊</div>
+      <div class="score-value" id="pts-red">0</div>
+      <div class="score-meta"><span>🍜 <span id="line-red">0</span></span><span>·</span><span>🎯 <span id="claim-red">0</span></span><span>·</span><span>⭐ <span id="boss-red">0</span></span></div>
+    </div>
+    <div class="vs-label">VS</div>
+    <div class="score-card blue" id="score-blue">
+      <div class="score-team" id="name-blue">藍隊</div>
+      <div class="score-value" id="pts-blue">0</div>
+      <div class="score-meta"><span>🍜 <span id="line-blue">0</span></span><span>·</span><span>🎯 <span id="claim-blue">0</span></span><span>·</span><span>⭐ <span id="boss-blue">0</span></span></div>
+    </div>
+  </div>
+
+  <div class="turn-banner" id="turn-banner">
+    <span class="turn-pulse"></span>
+    <span id="turn-label">紅隊回合</span>
+    <span class="turn-tip" id="turn-tip">點格子選食物</span>
+  </div>
+
+  <div class="grid-wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-item"><div class="stat-val" id="stat-target">5</div><div class="stat-lbl">連線目標</div></div>
+    <div class="stat-item"><div class="stat-val" id="stat-remain">49</div><div class="stat-lbl">未占領</div></div>
+    <div class="stat-item"><div class="stat-val" id="stat-swap">0</div><div class="stat-lbl">已換食物</div></div>
+  </div>
+</section>
+
+<!-- ============ ACTION BAR ============ -->
+<div class="action-bar" id="action-bar" style="display:none;">
+  <div class="selected-row" id="selected-row">
+    <div class="selected-emoji" id="selected-emoji">🍽</div>
+    <div class="selected-info">
+      <div class="selected-name" id="selected-name"></div>
+      <div class="selected-meta" id="selected-meta"></div>
+    </div>
+    <label class="btn-photo" id="photo-btn" for="photo-input">
+      <span id="photo-icon">📸</span>
+      <img id="photo-preview" style="display:none;">
+    </label>
+    <input id="photo-input" type="file" accept="image/*" capture="environment" style="display:none;">
+    <button class="btn-swap" id="btn-swap">🔄 換</button>
+    <button class="btn-confirm" id="btn-confirm">吃！</button>
+    <button class="btn-cancel" id="btn-cancel">✕</button>
+  </div>
+
+  <div class="action-row">
+    <button class="btn btn-addfood" id="btn-addfood">➕ 加料</button>
+    <button class="btn btn-reshuffle" id="btn-reshuffle" style="color: var(--gold); border-color: rgba(255,209,90,0.5);">🔀 洗牌</button>
+    <button class="btn btn-rotate-boss" id="btn-rotate-boss" style="color: var(--gold); border-color: rgba(255,209,90,0.5);">⭐ 換星</button>
+    <button class="btn btn-skip" id="btn-skip">⏭ 跳過</button>
+    <button class="btn btn-end" id="btn-end">🏁 結算</button>
+  </div>
+</div>
+
+<!-- ============ END ============ -->
+<section id="screen-end" class="screen">
+  <div class="winner-banner">
+    <div class="winner-crown" id="winner-crown">🏆</div>
+    <div class="winner-name" id="winner-name">勝利</div>
+    <div class="winner-score" id="winner-score"></div>
+  </div>
+
+  <div id="win-line-wrap" style="display:none;">
+    <div class="small-muted" style="margin-bottom:4px; padding-left:2px;">🎉 致勝連線</div>
+    <div class="win-line-display" id="win-line-display"></div>
+  </div>
+
+  <div class="result-card red">
+    <div class="result-header">
+      <h3 id="result-red-name">紅隊</h3>
+      <div class="pts" id="result-red-pts">0 分</div>
+    </div>
+    <div class="result-stats">
+      <div class="rstat"><div class="rstat-val" id="r-r-line" style="color:var(--gold)">0</div><div class="rstat-lbl">🍜 連線</div></div>
+      <div class="rstat"><div class="rstat-val" id="r-r-claim">0</div><div class="rstat-lbl">占領</div></div>
+      <div class="rstat"><div class="rstat-val" id="r-r-boss">0</div><div class="rstat-lbl">Boss</div></div>
+      <div class="rstat"><div class="rstat-val" id="r-r-photo">0</div><div class="rstat-lbl">照片</div></div>
+    </div>
+    <div class="claimed-grid" id="r-r-grid"></div>
+  </div>
+
+  <div class="result-card blue">
+    <div class="result-header">
+      <h3 id="result-blue-name">藍隊</h3>
+      <div class="pts" id="result-blue-pts">0 分</div>
+    </div>
+    <div class="result-stats">
+      <div class="rstat"><div class="rstat-val" id="r-b-line" style="color:var(--gold)">0</div><div class="rstat-lbl">🍜 連線</div></div>
+      <div class="rstat"><div class="rstat-val" id="r-b-claim">0</div><div class="rstat-lbl">占領</div></div>
+      <div class="rstat"><div class="rstat-val" id="r-b-boss">0</div><div class="rstat-lbl">Boss</div></div>
+      <div class="rstat"><div class="rstat-val" id="r-b-photo">0</div><div class="rstat-lbl">照片</div></div>
+    </div>
+    <div class="claimed-grid" id="r-b-grid"></div>
+  </div>
+
+  <button class="btn-primary" id="btn-make-video" style="margin-bottom: 10px; background: linear-gradient(135deg, #a875ff, #ff3860 60%, #ffd15a);">🎬 生成戰績影片</button>
+  <button class="btn-primary" id="btn-share" style="margin-bottom: 10px;">📤 分享戰績</button>
+  <button class="btn-ghost" id="btn-restart">🔄 再玩一場</button>
+</section>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- Multiplayer room modal -->
+<div class="modal-backdrop" id="mp-modal">
+  <div class="modal" style="text-align:center; padding: 30px 20px;">
+    <button class="modal-close" id="mp-modal-close">✕</button>
+    <h2 id="mp-modal-title">🎴 開房間中…</h2>
+    <div id="mp-code-big" style="font-size:64px; font-weight:900; letter-spacing:12px; color:var(--gold); text-shadow:0 0 32px var(--gold-glow); font-family:'Fredoka',sans-serif; margin:24px 0;">----</div>
+    <div id="mp-modal-status" style="font-size:15px; color:var(--text); margin-bottom:16px; min-height:24px;">正在建立房間…</div>
+    <div style="font-size:12px; color:var(--text-mute); line-height:1.6;">📱 讓對手在另一支手機打開同一個檔案<br>選「✈️ 加入 (藍)」後輸入上面的 4 位房號</div>
+    <button class="btn-ghost" id="mp-cancel" style="margin-top:16px;">取消，回到設定</button>
+  </div>
+</div>
+
+<!-- Turn lock overlay -->
+<div id="mp-lock" class="mp-lock" style="display:none;">
+  <div class="mp-lock-inner">
+    <div style="font-size:48px;">⏳</div>
+    <div class="mp-lock-title" id="mp-lock-title">等待對方回合…</div>
+    <div class="mp-lock-sub">你可以看對方占領了什麼</div>
+  </div>
+</div>
+
+<!-- MP status chip -->
+<div id="mp-chip" class="mp-chip hidden"></div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">✕</button>
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Video modal -->
+<div class="modal-backdrop" id="video-modal">
+  <div class="modal">
+    <button class="modal-close" id="video-close">✕</button>
+    <h2>🎬 戰績影片</h2>
+    <div id="video-setup" style="display:block;">
+      <div style="margin-bottom:12px; font-size:13px; color: var(--text-dim); line-height:1.6;">
+        把兩隊占領的照片做成 1080×1080 方形影片（適合 IG / LINE 分享）<br>
+        製作過程約 1 分鐘，請不要切換到其他 App。
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px; color: var(--text-dim); margin-bottom:6px; display:block;">🎵 背景音樂（選填，MP3 / M4A）</label>
+        <input type="file" id="video-music-input" accept="audio/*" style="font-size:13px; padding:10px;">
+      </div>
+      <button class="btn-primary" id="btn-video-start" style="margin-top:4px;">🎞 開始製作</button>
+    </div>
+    <div id="video-progress-wrap" style="display:none; text-align:center; padding:20px 0;">
+      <div style="font-size:48px; margin-bottom:8px; animation: pulse 1.5s ease-in-out infinite;">🎬</div>
+      <div id="video-status" style="margin-bottom:12px; font-size:15px; font-weight:700;">準備中...</div>
+      <div style="background: var(--bg-elev); border-radius:20px; overflow:hidden; height:12px; margin-bottom:8px;">
+        <div id="video-progress-bar" style="height:100%; background: linear-gradient(90deg, var(--purple), var(--gold), var(--green)); width:0%; transition: width 0.3s;"></div>
+      </div>
+      <div class="small-muted" id="video-percent">0%</div>
+    </div>
+    <div id="video-done" style="display:none;">
+      <video id="video-preview" controls playsinline style="width:100%; border-radius:12px; background:#000; margin-bottom:12px;"></video>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+        <a id="video-download" class="btn-primary" style="text-decoration:none; display:flex; align-items:center; justify-content:center; padding:14px;" download>⬇ 下載</a>
+        <button id="video-share" class="btn-primary" style="background: linear-gradient(135deg, var(--blue), var(--green));">📤 分享</button>
+      </div>
+      <div class="small-muted" style="margin-top:10px; text-align:center;">📱 手機下載後可用「另存新檔到相簿」儲存<br>若分享按鈕無效，請用下載</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ============================================================
+// FOOD DICTIONARY — 文化路夜市
+// ============================================================
+const FOODS = [
+  { name: "石頭餅",        emoji: "🍘" },
+  { name: "越南麵包",      emoji: "🥖" },
+  { name: "花生捲冰淇淋",  emoji: "🍦", boss: true },
+  { name: "烤魷魚",        emoji: "🦑" },
+  { name: "玉米",          emoji: "🌽" },
+  { name: "雞蛋糕",        emoji: "🧇" },
+  { name: "燒烤杏鮑菇",    emoji: "🍄" },
+  { name: "脆皮臭豆腐",    emoji: "🧆" },
+  { name: "白糖粿",        emoji: "🍡" },
+  { name: "詐饅頭",        emoji: "🥟", boss: true },
+  { name: "西瓜汁",        emoji: "🍉" },
+  { name: "木瓜牛奶",      emoji: "🥛" },
+  { name: "麻辣鴨血",      emoji: "🌶️", boss: true },
+  { name: "蚵蛋燒",        emoji: "🦪", boss: true },
+  { name: "爆蝦餅",        emoji: "🦐" },
+  { name: "爆米餅",        emoji: "🍿" },
+  { name: "南瓜果果",      emoji: "🎃" },
+  { name: "雞蛋仔",        emoji: "🥚" },
+  { name: "番茄",          emoji: "🍅" },
+  { name: "芭樂",          emoji: "🫒" },
+  { name: "芒果青",        emoji: "🥭" },
+  { name: "糖葫蘆",        emoji: "🍒" },
+  { name: "骰子牛",        emoji: "🐄", boss: true },
+  { name: "豆乳雞",        emoji: "🍗" },
+  { name: "酪梨牛奶",      emoji: "🥑" },
+  { name: "蜜番薯",        emoji: "🍠" },
+  { name: "熱狗",          emoji: "🌭" },
+  { name: "薯條",          emoji: "🍟" },
+  { name: "旗魚黑輪",      emoji: "🐟" },
+  { name: "三星蔥餅",      emoji: "🫓" },
+  { name: "滷味",          emoji: "🍢" },
+  { name: "章魚燒",        emoji: "🐙" },
+  { name: "甘蔗汁",        emoji: "🧃" },
+  { name: "QQ水果凍",      emoji: "🍮" },
+  { name: "魷魚",          emoji: "🦑" },
+  { name: "薯餅",          emoji: "🥔" },
+  { name: "胡椒餅",        emoji: "🥮" },
+  { name: "金桔檸檬",      emoji: "🍋" },
+  { name: "黑糖粉圓",      emoji: "🧋" },
+  { name: "烤肉",          emoji: "🍖" },
+  { name: "土魠魚",        emoji: "🐠", boss: true },
+  { name: "鳳梨蝦球",      emoji: "🍍", boss: true },
+  { name: "豆干",          emoji: "🟫" },
+  { name: "鳥蛋",          emoji: "🥚" },
+  { name: "魚蛋",          emoji: "🐟" },
+  { name: "印度拉茶",      emoji: "🫖" },
+  { name: "鯛魚燒",        emoji: "🐡" },
+  { name: "戰鬥雞",        emoji: "🐓", boss: true },
+  { name: "醉雞",          emoji: "🐔", boss: true },
+  { name: "肉圓",          emoji: "🍙" },
+  { name: "蝦蛋燒",        emoji: "🦐" },
+  { name: "白玉烤梨",      emoji: "🍐", boss: true },
+  { name: "大福",          emoji: "🍡" },
+  { name: "泡芙",          emoji: "🧁" },
+  { name: "雞排",          emoji: "🍗" },
+  { name: "地瓜球",        emoji: "🍠" },
+  { name: "蔥油餅",        emoji: "🫓" },
+  { name: "畫糖",          emoji: "🍭" },
+  { name: "肉夾饃",        emoji: "🥪" },
+  { name: "可麗餅",        emoji: "🥞" },
+  { name: "果汁",          emoji: "🧃" },
+  { name: "乳香布雷",      emoji: "🍮" },
+  { name: "炸雞",          emoji: "🍗" },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+const STORAGE_KEY = "wenhua_lianxian_v1";
+const GRID_SIZE = 7;
+const BOSS_COUNT = 5;
+const BOSS_ROTATE_MS = 30 * 60 * 1000; // 30 分鐘自動輪替
+
+let state = freshState();
+let selectedIdx = null;
+
+function freshState() {
+  return {
+    gridSize: GRID_SIZE,
+    target: 5,
+    mode: "feast", // "feast" (累積連線) | "blitz" (先連 N 立即勝)
+    teams: {
+      red:  { name: "紅隊", claims: 0, points: 0, bossCount: 0, photoCount: 0, lineCount: 0 },
+      blue: { name: "藍隊", claims: 0, points: 0, bossCount: 0, photoCount: 0, lineCount: 0 },
+    },
+    turn: "red",
+    grid: [],        // cell: { food, claimedBy, photo, swapCount, wasBoss, ts }
+    photoBuffer: null,
+    customFoods: [],
+    bossNames: [],   // 目前 5 道隨機 Boss 小吃
+    lastBossRotateAt: null,
+    finished: false,
+    winningLine: null,
+    winnerTeam: null,
+    startedAt: Date.now(),
+  };
+}
+
+// Count all N-length windows entirely owned by team (feast mode line tally)
+function countLines(team) {
+  const size = state.gridSize;
+  const target = state.target;
+  let count = 0;
+  const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      for (const [dr, dc] of dirs) {
+        const er = r + (target - 1) * dr;
+        const ec = c + (target - 1) * dc;
+        if (er < 0 || er >= size || ec < 0 || ec >= size) continue;
+        let ok = true;
+        for (let i = 0; i < target; i++) {
+          const rr = r + i * dr;
+          const cc = c + i * dc;
+          if (state.grid[rr * size + cc].claimedBy !== team) { ok = false; break; }
+        }
+        if (ok) count++;
+      }
+    }
+  }
+  return count;
+}
+
+// ============================================================
+// BOSS ROTATION
+// ============================================================
+function isBoss(food) {
+  if (!food || !state.bossNames) return false;
+  return state.bossNames.includes(food.name);
+}
+
+function rotateBossNames() {
+  const allNames = [...new Set([...FOODS, ...state.customFoods].map(f => f.name))];
+  state.bossNames = shuffle(allNames).slice(0, BOSS_COUNT);
+  state.lastBossRotateAt = Date.now();
+}
+
+function bossMsRemaining() {
+  if (!state.lastBossRotateAt) return 0;
+  return Math.max(0, BOSS_ROTATE_MS - (Date.now() - state.lastBossRotateAt));
+}
+
+// Auto-rotate check every 60 seconds
+setInterval(() => {
+  if (!state || state.finished) return;
+  if (!state.lastBossRotateAt) return;
+  if (Date.now() - state.lastBossRotateAt >= BOSS_ROTATE_MS) {
+    rotateBossNames();
+    saveState();
+    renderAll();
+    toast(`🎲 Boss 輪換！${state.bossNames.join("、")}`, "bonus");
+  }
+}, 60 * 1000);
+
+// ============================================================
+// UTILITIES
+// ============================================================
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function toast(msg, type = "") {
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.textContent = msg;
+  $("#toasts").appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function showScreen(id) {
+  $$(".screen").forEach(s => s.classList.remove("active"));
+  $("#" + id).classList.add("active");
+  $("#action-bar").style.display = id === "screen-game" ? "block" : "none";
+}
+
+function saveState() {
+  try {
+    const slim = JSON.parse(JSON.stringify(state));
+    slim.photoBuffer = null;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
+  } catch (e) { console.warn("save failed", e); }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    // Migrate: swapped boolean → swapCount int
+    if (s.grid) {
+      s.grid.forEach(c => {
+        if (typeof c.swapCount !== "number") {
+          c.swapCount = c.swapped ? 1 : 0;
+          delete c.swapped;
+        }
+        // Snapshot wasBoss from food.boss on old data
+        if (c.claimedBy && typeof c.wasBoss !== "boolean") {
+          c.wasBoss = !!(c.food && c.food.boss);
+        }
+      });
+    }
+    // Migrate: bossNames missing → seed from old hardcoded or fresh random
+    if (!s.bossNames || !Array.isArray(s.bossNames) || s.bossNames.length === 0) {
+      const pool = [...new Set([...FOODS, ...(s.customFoods || [])].map(f => f.name))];
+      s.bossNames = shuffle(pool).slice(0, BOSS_COUNT);
+      s.lastBossRotateAt = Date.now();
+    }
+    // Migrate: missing mode / lineCount
+    if (!s.mode) s.mode = "blitz"; // old saves default to legacy blitz
+    if (s.teams) {
+      ["red", "blue"].forEach(k => {
+        if (typeof s.teams[k].lineCount !== "number") s.teams[k].lineCount = 0;
+      });
+    }
+    return s;
+  } catch { return null; }
+}
+
+function resizeImage(file, maxSize = 640, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxSize) {
+          height = Math.round(height * maxSize / width);
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round(width * maxSize / height);
+          height = maxSize;
+        }
+        const c = document.createElement("canvas");
+        c.width = width; c.height = height;
+        c.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(c.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function parseCustomFoods(text) {
+  if (!text) return [];
+  const names = text.split(/[\n,，、;；]/).map(s => s.trim()).filter(Boolean);
+  const seen = new Set();
+  const result = [];
+  for (const name of names) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    result.push({ name, emoji: "🍱", custom: true });
+  }
+  return result;
+}
+
+// ============================================================
+// GRID GENERATION
+// ============================================================
+function generateGrid() {
+  const size = state.gridSize;
+  const total = size * size;
+
+  // Dedupe pool by name (no duplicates on the board)
+  const rawPool = [...FOODS, ...state.customFoods];
+  const seen = new Set();
+  const pool = [];
+  for (const f of rawPool) {
+    if (seen.has(f.name)) continue;
+    seen.add(f.name);
+    pool.push(f);
+  }
+
+  if (pool.length < total) {
+    // Not enough unique foods, warn but fill with duplicates as fallback
+    toast(`食物不夠填滿 ${total} 格（只有 ${pool.length} 種）`, "error");
+    const shuffled = shuffle(pool);
+    state.grid = Array.from({ length: total }, (_, i) => ({
+      food: shuffled[i % shuffled.length],
+      claimedBy: null, photo: null, swapCount: 0, ts: null,
+    }));
+  } else {
+    const shuffled = shuffle(pool).slice(0, total);
+    state.grid = shuffled.map(food => ({
+      food, claimedBy: null, photo: null, swapCount: 0, ts: null,
+    }));
+  }
+}
+
+// ============================================================
+// SETUP EVENTS
+// ============================================================
+["#opt-target", "#opt-mode"].forEach(sel => {
+  $$(sel + " .option-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+      $$(sel + " .option-chip").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+});
+
+$("#btn-start").addEventListener("click", () => {
+  const red = $("#setup-red").value.trim() || "紅隊";
+  const blue = $("#setup-blue").value.trim() || "藍隊";
+  const targetBtn = $("#opt-target .option-chip.active");
+  const target = parseInt(targetBtn?.dataset.opt || "5", 10);
+  const modeBtn = $("#opt-mode .option-chip.active");
+  const mode = modeBtn?.dataset.opt || "feast";
+  const custom = parseCustomFoods($("#custom-foods").value);
+
+  state = freshState();
+  state.teams.red.name = red;
+  state.teams.blue.name = blue;
+  state.target = target;
+  state.mode = mode;
+  state.customFoods = custom;
+  rotateBossNames();
+  generateGrid();
+  saveState();
+
+  selectedIdx = null;
+  renderAll();
+  showScreen("screen-game");
+
+  if (custom.length > 0) {
+    toast(`✨ 加入 ${custom.length} 道自訂食物`, "success");
+  }
+});
+
+$("#btn-resume").addEventListener("click", () => {
+  const loaded = loadState();
+  if (!loaded) return;
+  state = loaded;
+  selectedIdx = null;
+  // Recompute line counts from grid (in case save was from old version)
+  state.teams.red.lineCount = countLines("red");
+  state.teams.blue.lineCount = countLines("blue");
+  if (state.finished) {
+    renderEnd();
+    showScreen("screen-end");
+  } else {
+    renderAll();
+    showScreen("screen-game");
+  }
+});
+
+function checkResume() {
+  const loaded = loadState();
+  if (!loaded) return;
+  const totalClaims = (loaded.teams?.red?.claims || 0) + (loaded.teams?.blue?.claims || 0);
+  if (totalClaims > 0 || loaded.finished) {
+    $("#btn-resume").style.display = "block";
+    $("#btn-resume").textContent = loaded.finished
+      ? `查看上次結果（${loaded.teams.red.name} vs ${loaded.teams.blue.name}）`
+      : `繼續上次遊戲（${loaded.teams.red.name} ${loaded.teams.red.claims} : ${loaded.teams.blue.claims} ${loaded.teams.blue.name}）`;
+  }
+}
+checkResume();
+
+// ============================================================
+// GAME LOGIC
+// ============================================================
+function curTeam() { return state.teams[state.turn]; }
+function otherKey() { return state.turn === "red" ? "blue" : "red"; }
+
+function switchTurn() {
+  state.turn = otherKey();
+  state.photoBuffer = null;
+  selectedIdx = null;
+  saveState();
+  renderAll();
+}
+
+function selectCell(idx) {
+  if (state.finished) return;
+  const cell = state.grid[idx];
+  if (cell.claimedBy) {
+    // show info modal
+    openCellModal(idx);
+    return;
+  }
+  selectedIdx = idx;
+  state.photoBuffer = null;
+  renderSelected();
+  renderGrid();
+}
+
+function clearSelection() {
+  selectedIdx = null;
+  state.photoBuffer = null;
+  renderSelected();
+  renderGrid();
+}
+
+const MAX_SWAPS = 2;
+
+function swapCellFood() {
+  if (selectedIdx == null) return;
+  const cell = state.grid[selectedIdx];
+  if (cell.claimedBy) { toast("已占領的格子不能換", "error"); return; }
+  const used = cell.swapCount || 0;
+  if (used >= MAX_SWAPS) { toast(`這格已經換過 ${MAX_SWAPS} 次，無法再換`, "error"); return; }
+
+  // Pool: any food not currently on the grid (strict no-dupes)
+  const currentNames = new Set(state.grid.map(c => c.food.name));
+  const allPool = [...FOODS, ...state.customFoods];
+  // Dedupe pool by name
+  const poolSeen = new Set();
+  const uniquePool = [];
+  for (const f of allPool) {
+    if (poolSeen.has(f.name)) continue;
+    poolSeen.add(f.name);
+    uniquePool.push(f);
+  }
+  const candidates = uniquePool.filter(f => !currentNames.has(f.name));
+  if (candidates.length === 0) {
+    toast("所有食物都在棋盤上，無法再換", "error");
+    return;
+  }
+  const newFood = candidates[Math.floor(Math.random() * candidates.length)];
+  cell.food = newFood;
+  cell.swapCount = used + 1;
+  const remaining = MAX_SWAPS - cell.swapCount;
+  toast(`🔄 換成「${newFood.name}」${remaining > 0 ? `（還可換 ${remaining} 次）` : "（已用完）"}`, "purple");
+  saveState();
+  renderSelected();
+  renderGrid();
+  updateStats();
+}
+
+function claimCell() {
+  if (selectedIdx == null) return;
+  const cell = state.grid[selectedIdx];
+  if (cell.claimedBy) { toast("已被占領", "error"); return; }
+  if (!state.photoBuffer) { toast("先拍照才能占領！📸", "error"); return; }
+
+  const team = curTeam();
+  const prevLines = countLines(state.turn);
+
+  cell.claimedBy = state.turn;
+  cell.photo = state.photoBuffer;
+  cell.ts = Date.now();
+  cell.wasBoss = isBoss(cell.food);  // snapshot boss status at claim time
+
+  // Scoring: 5 per claim, +5 if photo, +10 if boss
+  let pts = 5;
+  const reasons = [`占領 +5`];
+  if (state.photoBuffer) { pts += 5; reasons.push("照片 +5"); team.photoCount++; }
+  if (cell.wasBoss) { pts += 10; reasons.push("Boss +10"); team.bossCount++; }
+
+  // Feast mode: bonus for every new line created by this claim (+20 each)
+  const newLines = countLines(state.turn);
+  const lineDelta = newLines - prevLines;
+  if (state.mode === "feast" && lineDelta > 0) {
+    const lineBonus = lineDelta * 20;
+    pts += lineBonus;
+    reasons.push(`🎉 完成 ${lineDelta} 條線 +${lineBonus}`);
+  }
+  team.lineCount = newLines;
+  // Also refresh the other team's lineCount (claim could fragment lines — unlikely but safe)
+  state.teams[otherKey()].lineCount = countLines(otherKey());
+
+  team.claims++;
+  team.points += pts;
+  toast(`+${pts}・${reasons.join("、")}`, "success");
+  if (state.mode === "feast" && lineDelta > 0) {
+    flashLineFlare(lineDelta);
+  }
+
+  // Blitz mode: first line ends game
+  if (state.mode === "blitz") {
+    const line = checkWin(selectedIdx, state.turn);
+    if (line) {
+      state.winningLine = line;
+      state.winnerTeam = state.turn;
+      state.finished = true;
+      saveState();
+      setTimeout(() => {
+        renderGrid();
+        setTimeout(() => celebrateWin(), 800);
+      }, 150);
+      return;
+    }
+  }
+
+  // Check board full → end
+  const anyEmpty = state.grid.some(c => !c.claimedBy);
+  if (!anyEmpty) {
+    state.finished = true;
+    if (state.mode === "feast") decideFeastWinner();
+    saveState();
+    setTimeout(() => celebrateWin(), 400);
+    return;
+  }
+
+  switchTurn();
+}
+
+function checkWin(idx, team) {
+  const size = state.gridSize;
+  const target = state.target;
+  const row = Math.floor(idx / size);
+  const col = idx % size;
+  const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+  for (const [dr, dc] of dirs) {
+    let line = [idx];
+    let r = row + dr, c = col + dc;
+    while (r >= 0 && r < size && c >= 0 && c < size) {
+      const i = r * size + c;
+      if (state.grid[i].claimedBy === team) { line.push(i); r += dr; c += dc; }
+      else break;
+    }
+    r = row - dr; c = col - dc;
+    while (r >= 0 && r < size && c >= 0 && c < size) {
+      const i = r * size + c;
+      if (state.grid[i].claimedBy === team) { line.unshift(i); r -= dr; c -= dc; }
+      else break;
+    }
+    if (line.length >= target) return line;
+  }
+  return null;
+}
+
+function longestLineForTeam(team) {
+  let maxLen = 0;
+  const size = state.gridSize;
+  const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const idx = r * size + c;
+      if (state.grid[idx].claimedBy !== team) continue;
+      for (const [dr, dc] of dirs) {
+        // Only count if starting cell (no team cell before)
+        const pr = r - dr, pc = c - dc;
+        if (pr >= 0 && pr < size && pc >= 0 && pc < size) {
+          const pidx = pr * size + pc;
+          if (state.grid[pidx].claimedBy === team) continue;
+        }
+        let len = 1;
+        let nr = r + dr, nc = c + dc;
+        while (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+          const ni = nr * size + nc;
+          if (state.grid[ni].claimedBy === team) { len++; nr += dr; nc += dc; }
+          else break;
+        }
+        if (len > maxLen) maxLen = len;
+      }
+    }
+  }
+  return maxLen;
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+$("#btn-swap").addEventListener("click", swapCellFood);
+$("#btn-confirm").addEventListener("click", claimCell);
+$("#btn-cancel").addEventListener("click", clearSelection);
+
+$("#btn-skip").addEventListener("click", () => {
+  if (!confirm("跳過本回合？對手將直接行動。")) return;
+  clearSelection();
+  switchTurn();
+  toast("跳過本回合", "");
+});
+
+$("#btn-end").addEventListener("click", () => {
+  if (!confirm("提前結算遊戲？")) return;
+  state.finished = true;
+  if (state.mode === "feast") decideFeastWinner();
+  saveState();
+  celebrateWin();
+});
+
+function decideFeastWinner() {
+  const r = state.teams.red, b = state.teams.blue;
+  r.lineCount = countLines("red");
+  b.lineCount = countLines("blue");
+  if (r.lineCount > b.lineCount) state.winnerTeam = "red";
+  else if (b.lineCount > r.lineCount) state.winnerTeam = "blue";
+  else if (r.points > b.points) state.winnerTeam = "red";
+  else if (b.points > r.points) state.winnerTeam = "blue";
+  else state.winnerTeam = null;
+}
+
+function flashLineFlare(delta) {
+  const msg = delta === 1 ? "🎉 +1 連線" : `🎉 +${delta} 連線`;
+  const el = document.createElement("div");
+  el.textContent = msg;
+  el.style.cssText = `
+    position: fixed; top: 45%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.4);
+    font-size: 58px; font-weight: 900;
+    color: #ffd15a;
+    text-shadow: 0 0 24px #ffd15a, 0 0 48px #ff3860, 0 2px 4px #000;
+    z-index: 95; pointer-events: none;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    letter-spacing: 4px;
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.opacity = "1";
+    el.style.transform = "translate(-50%, -50%) scale(1)";
+  });
+  setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translate(-50%, -50%) scale(1.2)";
+    setTimeout(() => el.remove(), 500);
+  }, 900);
+}
+
+$("#btn-reshuffle").addEventListener("click", () => {
+  const hasClaims = state.grid.some(c => c.claimedBy);
+  if (hasClaims) {
+    if (!confirm("目前棋盤上已有占領紀錄。洗牌會清空所有占領、照片與分數（保留隊名），確定？")) return;
+    // Reset team stats
+    ["red", "blue"].forEach(k => {
+      state.teams[k].claims = 0;
+      state.teams[k].points = 0;
+      state.teams[k].bossCount = 0;
+      state.teams[k].photoCount = 0;
+    });
+  } else if (!confirm("重新隨機生成整個棋盤？")) {
+    return;
+  }
+  state.turn = "red";
+  state.winningLine = null;
+  state.winnerTeam = null;
+  state.finished = false;
+  selectedIdx = null;
+  state.photoBuffer = null;
+  rotateBossNames();
+  generateGrid();
+  saveState();
+  renderAll();
+  toast("🔀 棋盤已洗牌 ・ Boss 也換了", "bonus");
+});
+
+$("#btn-rotate-boss").addEventListener("click", () => {
+  rotateBossNames();
+  saveState();
+  renderAll();
+  toast(`⭐ 新 Boss：${state.bossNames.join("、")}`, "bonus");
+});
+
+$("#btn-addfood").addEventListener("click", () => {
+  const input = prompt("輸入要加入的食物名稱（可用逗號分隔多個）：\n加入後會隨機換掉空格子中的食物");
+  if (!input) return;
+  const parsed = parseCustomFoods(input);
+  if (parsed.length === 0) { toast("沒有有效的食物名稱", "error"); return; }
+
+  // Dedupe against existing grid + custom pool to avoid duplicates
+  const gridNames = new Set(state.grid.map(c => c.food.name));
+  const customNames = new Set(state.customFoods.map(f => f.name));
+  const unique = parsed.filter(f => !gridNames.has(f.name) && !customNames.has(f.name));
+  const skipped = parsed.length - unique.length;
+  if (unique.length === 0) {
+    toast(`這些食物都已在棋盤或清單上，沒有新內容`, "error");
+    return;
+  }
+
+  state.customFoods.push(...unique);
+
+  // Inject into random unclaimed, not-maxed-swap cells
+  const candidates = state.grid
+    .map((c, i) => ({ c, i }))
+    .filter(x => !x.c.claimedBy && (x.c.swapCount || 0) < MAX_SWAPS);
+  const toInject = Math.min(unique.length, candidates.length);
+  const shuffledCand = shuffle(candidates).slice(0, toInject);
+  shuffledCand.forEach((x, j) => {
+    state.grid[x.i].food = unique[j];
+    state.grid[x.i].swapCount = (state.grid[x.i].swapCount || 0) + 1;
+  });
+  let msg = `➕ 新增 ${unique.length} 道，放入 ${toInject} 格`;
+  if (skipped) msg += `（跳過 ${skipped} 道重複）`;
+  toast(msg, "purple");
+  saveState();
+  renderAll();
+});
+
+// Photo
+$("#photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const data = await resizeImage(file);
+    state.photoBuffer = data;
+    renderSelected();
+  } catch { toast("照片處理失敗", "error"); }
+});
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderAll() {
+  renderScoreboard();
+  renderTurn();
+  renderGrid();
+  renderSelected();
+  updateStats();
+}
+
+function renderScoreboard() {
+  $("#name-red").textContent = state.teams.red.name;
+  $("#name-blue").textContent = state.teams.blue.name;
+  $("#pts-red").textContent = state.teams.red.points;
+  $("#pts-blue").textContent = state.teams.blue.points;
+  $("#claim-red").textContent = state.teams.red.claims;
+  $("#claim-blue").textContent = state.teams.blue.claims;
+  $("#boss-red").textContent = state.teams.red.bossCount;
+  $("#boss-blue").textContent = state.teams.blue.bossCount;
+  $("#line-red").textContent = state.teams.red.lineCount || 0;
+  $("#line-blue").textContent = state.teams.blue.lineCount || 0;
+  $("#score-red").classList.toggle("active", state.turn === "red");
+  $("#score-blue").classList.toggle("active", state.turn === "blue");
+}
+
+function renderTurn() {
+  const t = curTeam();
+  $("#turn-label").textContent = t.name + " 回合";
+  const banner = $("#turn-banner");
+  banner.classList.toggle("red", state.turn === "red");
+  banner.classList.toggle("blue", state.turn === "blue");
+  if (state.mode === "feast") {
+    const lc = t.lineCount || 0;
+    const tip = lc === 0
+      ? `🍜 盡量吃！累積連線最多者勝`
+      : `🍜 已完成 ${lc} 條線，繼續嗑！`;
+    $("#turn-tip").textContent = tip;
+  } else {
+    const longest = longestLineForTeam(state.turn);
+    const tip = longest >= state.target - 1
+      ? `🔥 再連 1 格就贏了！`
+      : longest >= 2
+        ? `🎯 已連 ${longest} 格，目標 ${state.target}`
+        : "點格子選食物";
+    $("#turn-tip").textContent = tip;
+  }
+}
+
+function renderGrid() {
+  const grid = $("#grid");
+  grid.style.setProperty("--cols", state.gridSize);
+  const winSet = state.winningLine ? new Set(state.winningLine) : new Set();
+  grid.innerHTML = state.grid.map((cell, i) => {
+    const cls = ["cell"];
+    if (cell.claimedBy === "red") cls.push("claimed-red");
+    if (cell.claimedBy === "blue") cls.push("claimed-blue");
+    const cellIsBoss = cell.claimedBy ? !!cell.wasBoss : isBoss(cell.food);
+    if (isBoss(cell.food) && !cell.claimedBy) cls.push("boss");
+    if (selectedIdx === i) cls.push("selected");
+    if (winSet.has(i)) cls.push("winning");
+
+    const bossStar = cellIsBoss ? `<div class="cell-badge-tr boss-star">⭐</div>` : "";
+    const swapIcon = (cell.swapCount || 0) > 0 && !cell.claimedBy
+      ? `<div class="cell-badge-tl swap-used">${cell.swapCount >= MAX_SWAPS ? "🔒" : "🔄"}${cell.swapCount}</div>`
+      : "";
+    const customTag = cell.food.custom ? `<div class="cell-badge-br custom">✨</div>` : "";
+    const photo = cell.photo ? `<img class="cell-photo" src="${cell.photo}" alt="">` : "";
+
+    return `
+      <div class="${cls.join(" ")}" data-idx="${i}">
+        ${photo}
+        ${bossStar}${swapIcon}${customTag}
+        <div class="cell-emoji">${cell.food.emoji}</div>
+        <div class="cell-name">${cell.food.name}</div>
+      </div>
+    `;
+  }).join("");
+  grid.querySelectorAll(".cell").forEach(el => {
+    el.addEventListener("click", () => {
+      const i = Number(el.dataset.idx);
+      selectCell(i);
+    });
+  });
+}
+
+function renderSelected() {
+  const row = $("#selected-row");
+  if (selectedIdx == null) {
+    row.classList.remove("show");
+    return;
+  }
+  const cell = state.grid[selectedIdx];
+  const food = cell.food;
+  row.classList.add("show");
+  $("#selected-emoji").textContent = food.emoji;
+  $("#selected-name").textContent = food.name;
+
+  const r = Math.floor(selectedIdx / state.gridSize);
+  const c = selectedIdx % state.gridSize;
+  let metaHtml = `<span class="selected-pos">第 ${r+1} 列 / 第 ${c+1} 行</span>`;
+  if (isBoss(food)) metaHtml += `<span class="selected-boss">⭐ Boss</span>`;
+  if (food.custom) metaHtml += `<span class="selected-custom">✨ 自訂</span>`;
+  if ((cell.swapCount || 0) > 0) metaHtml += `<span style="color:var(--purple)">🔄 換過 ${cell.swapCount}/${MAX_SWAPS}</span>`;
+  $("#selected-meta").innerHTML = metaHtml;
+
+  // Photo btn
+  const btn = $("#photo-btn");
+  const icon = $("#photo-icon");
+  const prev = $("#photo-preview");
+  if (state.photoBuffer) {
+    btn.classList.add("has-photo");
+    icon.style.display = "none";
+    prev.src = state.photoBuffer;
+    prev.style.display = "block";
+  } else {
+    btn.classList.remove("has-photo");
+    icon.style.display = "block";
+    prev.style.display = "none";
+  }
+
+  // Swap button state
+  const swapBtn = $("#btn-swap");
+  const used = cell.swapCount || 0;
+  swapBtn.disabled = used >= MAX_SWAPS;
+  swapBtn.textContent = used >= MAX_SWAPS
+    ? "🔒 已換完"
+    : `🔄 換 (${MAX_SWAPS - used})`;
+
+  // Confirm button: require photo
+  const confBtn = $("#btn-confirm");
+  if (!state.photoBuffer) {
+    confBtn.textContent = "先拍照 📸";
+    confBtn.disabled = true;
+    confBtn.style.opacity = "0.45";
+    confBtn.style.cursor = "not-allowed";
+  } else {
+    confBtn.textContent = "吃！";
+    confBtn.disabled = false;
+    confBtn.style.opacity = "";
+    confBtn.style.cursor = "pointer";
+  }
+}
+
+function updateStats() {
+  const remain = state.grid.filter(c => !c.claimedBy).length;
+  const swaps = state.grid.reduce((sum, c) => sum + (c.swapCount || 0), 0);
+  $("#stat-target").textContent = state.target;
+  $("#stat-remain").textContent = remain;
+  $("#stat-swap").textContent = swaps;
+}
+
+// ============================================================
+// MODAL (for viewing claimed cells)
+// ============================================================
+function openCellModal(idx) {
+  const cell = state.grid[idx];
+  if (!cell.claimedBy) return;
+  const team = state.teams[cell.claimedBy];
+  const r = Math.floor(idx / state.gridSize);
+  const c = idx % state.gridSize;
+  $("#modal-title").textContent = `${cell.food.emoji} ${cell.food.name}`;
+  const teamColor = cell.claimedBy === "red" ? "var(--red-bright)" : "var(--blue-bright)";
+  let body = `
+    <div style="display:grid; gap:8px; font-size:14px;">
+      <div>占領方：<strong style="color:${teamColor}">${team.name}</strong></div>
+      <div>位置：第 ${r+1} 列 · 第 ${c+1} 行</div>
+      <div>${cell.wasBoss ? '⭐ 占領時是 Boss · ' : ''}${cell.food.custom ? '✨ 自訂 · ' : ''}${(cell.swapCount || 0) > 0 ? `🔄 換過 ${cell.swapCount} 次` : ''}</div>
+    </div>
+  `;
+  if (cell.photo) {
+    body += `<img src="${cell.photo}" style="width:100%; border-radius:12px; margin-top:12px;">`;
+  } else {
+    body += `<div style="text-align:center; padding:20px; color:var(--text-dim); font-size:14px; margin-top:12px;">沒有照片</div>`;
+  }
+  $("#modal-body").innerHTML = body;
+  $("#modal").classList.add("show");
+}
+
+$("#modal-close").addEventListener("click", () => $("#modal").classList.remove("show"));
+$("#modal").addEventListener("click", e => {
+  if (e.target.id === "modal") $("#modal").classList.remove("show");
+});
+
+// ============================================================
+// WIN CELEBRATION
+// ============================================================
+function celebrateWin() {
+  launchConfetti();
+  renderEnd();
+  showScreen("screen-end");
+}
+
+function launchConfetti() {
+  const colors = ["#ff3860", "#3aa0ff", "#ffd15a", "#43d787", "#a875ff"];
+  const container = document.body;
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement("div");
+    el.className = "confetti";
+    el.style.left = Math.random() * 100 + "vw";
+    el.style.background = colors[i % colors.length];
+    el.style.animationDuration = (2.5 + Math.random() * 2) + "s";
+    el.style.animationDelay = Math.random() * 0.8 + "s";
+    el.style.transform = `rotate(${Math.random() * 360}deg)`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+}
+
+// ============================================================
+// END SCREEN
+// ============================================================
+function renderEnd() {
+  const r = state.teams.red;
+  const b = state.teams.blue;
+  const winnerTeam = state.winnerTeam;
+
+  // Recalc lineCount one more time for accuracy
+  r.lineCount = countLines("red");
+  b.lineCount = countLines("blue");
+
+  if (state.mode === "feast") {
+    if (winnerTeam) {
+      const wt = state.teams[winnerTeam];
+      $("#winner-crown").textContent = "🏆";
+      $("#winner-name").textContent = `${wt.name} 累積連線稱霸！`;
+      $("#winner-score").textContent = `🍜 ${r.name} ${r.lineCount} 線 : ${b.lineCount} 線 ${b.name}`;
+    } else {
+      $("#winner-crown").textContent = "🤝";
+      $("#winner-name").textContent = "連線數平手！";
+      $("#winner-score").textContent = `🍜 雙方都 ${r.lineCount} 條線`;
+    }
+  } else if (winnerTeam) {
+    const wt = state.teams[winnerTeam];
+    $("#winner-crown").textContent = "🏆";
+    $("#winner-name").textContent = `${wt.name} 連成 ${state.target} 子連線！`;
+    $("#winner-score").textContent = `🎉 ${state.target} 子連線獲勝！`;
+  } else {
+    const winnerByPts = r.points > b.points ? r : (b.points > r.points ? b : null);
+    $("#winner-crown").textContent = winnerByPts ? "🥇" : "🤝";
+    $("#winner-name").textContent = winnerByPts ? `${winnerByPts.name} 積分獲勝` : "積分平手";
+    $("#winner-score").textContent = `棋盤填滿 / 提前結算`;
+  }
+
+  const scoreLine = `${r.name} ${r.points} : ${b.points} ${b.name}`;
+  $("#winner-score").textContent += ` · ${scoreLine}`;
+
+  // Winning line display
+  const winWrap = $("#win-line-wrap");
+  if (state.winningLine && state.winningLine.length) {
+    winWrap.style.display = "block";
+    const container = $("#win-line-display");
+    container.innerHTML = state.winningLine.map(i => {
+      const cell = state.grid[i];
+      const teamCls = cell.claimedBy === "red" ? "red" : "blue";
+      return `
+        <div class="win-line-cell ${teamCls}">
+          ${cell.photo ? `<img src="${cell.photo}">` : ""}
+          <div class="wc-emoji">${cell.food.emoji}</div>
+          <div class="wc-name">${cell.food.name}</div>
+        </div>
+      `;
+    }).join("");
+  } else {
+    winWrap.style.display = "none";
+  }
+
+  // Result cards
+  $("#result-red-name").textContent = r.name;
+  $("#result-blue-name").textContent = b.name;
+  $("#result-red-pts").textContent = r.points + " 分";
+  $("#result-blue-pts").textContent = b.points + " 分";
+  $("#r-r-line").textContent = r.lineCount;
+  $("#r-r-claim").textContent = r.claims;
+  $("#r-r-boss").textContent = r.bossCount;
+  $("#r-r-photo").textContent = r.photoCount;
+  $("#r-b-line").textContent = b.lineCount;
+  $("#r-b-claim").textContent = b.claims;
+  $("#r-b-boss").textContent = b.bossCount;
+  $("#r-b-photo").textContent = b.photoCount;
+
+  renderClaimedGrid("r-r-grid", "red");
+  renderClaimedGrid("r-b-grid", "blue");
+}
+
+function renderClaimedGrid(elId, team) {
+  const container = $("#" + elId);
+  const cells = state.grid
+    .map((c, i) => ({ ...c, i }))
+    .filter(c => c.claimedBy === team)
+    .sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  if (cells.length === 0) {
+    container.innerHTML = `<div class="small-muted" style="grid-column:1/-1; text-align:center; padding:12px;">沒占領任何格子...</div>`;
+    return;
+  }
+  container.innerHTML = cells.map(c => {
+    const clsTeam = "claimed-" + team;
+    return `
+      <div class="cell ${clsTeam}" data-idx="${c.i}">
+        ${c.photo ? `<img class="cell-photo" src="${c.photo}" alt="">` : ""}
+        ${c.wasBoss ? '<div class="cell-badge-tr boss-star">⭐</div>' : ""}
+        <div class="cell-emoji">${c.food.emoji}</div>
+        <div class="cell-name">${c.food.name}</div>
+      </div>
+    `;
+  }).join("");
+  container.querySelectorAll(".cell").forEach(el => {
+    el.addEventListener("click", () => openCellModal(Number(el.dataset.idx)));
+  });
+}
+
+$("#btn-restart").addEventListener("click", () => {
+  if (!confirm("再開新的一場？會清除這次紀錄。")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = freshState();
+  $("#setup-red").value = "";
+  $("#setup-blue").value = "";
+  $("#custom-foods").value = "";
+  showScreen("screen-setup");
+  checkResume();
+});
+
+$("#btn-share").addEventListener("click", async () => {
+  const r = state.teams.red, b = state.teams.blue;
+  const winLabel = state.mode === "feast"
+    ? (state.winnerTeam ? `${state.teams[state.winnerTeam].name} 累積 ${state.teams[state.winnerTeam].lineCount} 條連線稱霸` : "連線數平手")
+    : (state.winnerTeam ? `${state.teams[state.winnerTeam].name} ${state.target} 子連線獲勝`
+      : (r.points === b.points ? "積分平手" : (r.points > b.points ? `${r.name} 積分勝` : `${b.name} 積分勝`)));
+  const text =
+    `【文化路夜市連線賓果】\n` +
+    `${winLabel}\n\n` +
+    `🔴 ${r.name}：🍜${r.lineCount}線 ・ ${r.claims}格 ・ ⭐${r.bossCount} ・ 📸${r.photoCount}\n` +
+    `🔵 ${b.name}：🍜${b.lineCount}線 ・ ${b.claims}格 ・ ⭐${b.bossCount} ・ 📸${b.photoCount}\n\n` +
+    `最終比數：${r.points} : ${b.points}`;
+  if (navigator.share) {
+    try { await navigator.share({ title: "文化路夜市連線賓果", text }); } catch {}
+  } else {
+    try { await navigator.clipboard.writeText(text); toast("戰績已複製到剪貼簿", "success"); }
+    catch { alert(text); }
+  }
+});
+
+// ============================================================
+// VIDEO GENERATION (Canvas + MediaRecorder)
+// ============================================================
+let videoBlob = null;
+
+$("#btn-make-video").addEventListener("click", () => {
+  const photos = state.grid.filter(c => c.claimedBy && c.photo);
+  if (photos.length === 0) {
+    toast("沒有照片可以做影片", "error");
+    return;
+  }
+  $("#video-setup").style.display = "block";
+  $("#video-progress-wrap").style.display = "none";
+  $("#video-done").style.display = "none";
+  $("#video-music-input").value = "";
+  videoBlob = null;
+  $("#video-modal").classList.add("show");
+});
+
+$("#video-close").addEventListener("click", () => {
+  $("#video-modal").classList.remove("show");
+});
+$("#video-modal").addEventListener("click", e => {
+  if (e.target.id === "video-modal") $("#video-modal").classList.remove("show");
+});
+
+$("#btn-video-start").addEventListener("click", async () => {
+  const file = $("#video-music-input").files[0];
+  $("#video-setup").style.display = "none";
+  $("#video-progress-wrap").style.display = "block";
+
+  try {
+    videoBlob = await makeSlideshow({
+      audioBlob: file || null,
+      onProgress: (p, label) => {
+        const pct = Math.round(p * 100);
+        $("#video-progress-bar").style.width = pct + "%";
+        $("#video-percent").textContent = pct + "%";
+        $("#video-status").textContent = label || `製作中 ${pct}%`;
+      },
+    });
+    $("#video-progress-wrap").style.display = "none";
+    $("#video-done").style.display = "block";
+    const url = URL.createObjectURL(videoBlob);
+    $("#video-preview").src = url;
+    const ext = videoBlob.type.includes("mp4") ? "mp4" : "webm";
+    const r = state.teams.red, b = state.teams.blue;
+    $("#video-download").href = url;
+    $("#video-download").download = `夜市連線_${r.name}vs${b.name}_${new Date().toISOString().slice(0,10)}.${ext}`;
+    toast("影片做好了！🎉", "success");
+  } catch (e) {
+    console.error(e);
+    $("#video-status").textContent = "❌ 製作失敗：" + (e.message || e);
+  }
+});
+
+$("#video-share").addEventListener("click", async () => {
+  if (!videoBlob) return;
+  const r = state.teams.red, b = state.teams.blue;
+  const ext = videoBlob.type.includes("mp4") ? "mp4" : "webm";
+  const file = new File([videoBlob], `夜市連線戰績.${ext}`, { type: videoBlob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: "文化路夜市連線賓果戰績",
+        text: `${r.name} ${r.points} : ${b.points} ${b.name}`,
+      });
+    } catch (e) { if (e.name !== "AbortError") toast("分享被取消或失敗", "error"); }
+  } else {
+    toast("此裝置不支援分享影片檔，請用下載", "error");
+  }
+});
+
+async function makeSlideshow({ audioBlob, onProgress }) {
+  const W = 1080, H = 1080;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#0a0a14";
+  ctx.fillRect(0, 0, W, H);
+
+  const videoStream = canvas.captureStream(30);
+
+  let audioCtx = null, audioSource = null, audioDest = null;
+  let audioTracks = [];
+  if (audioBlob) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const arr = await audioBlob.arrayBuffer();
+      const decoded = await audioCtx.decodeAudioData(arr);
+      audioSource = audioCtx.createBufferSource();
+      audioSource.buffer = decoded;
+      audioSource.loop = true;
+      audioDest = audioCtx.createMediaStreamDestination();
+      audioSource.connect(audioDest);
+      audioTracks = audioDest.stream.getAudioTracks();
+    } catch (e) {
+      console.warn("audio setup failed", e);
+      audioTracks = [];
+    }
+  }
+
+  const stream = new MediaStream([
+    ...videoStream.getVideoTracks(),
+    ...audioTracks,
+  ]);
+
+  let mimeType = "video/webm;codecs=vp9,opus";
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm;codecs=vp9";
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm;codecs=vp8,opus";
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm;codecs=vp8";
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/mp4";
+
+  const recorder = new MediaRecorder(stream, {
+    mimeType,
+    videoBitsPerSecond: 4_000_000,
+  });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  const donePromise = new Promise(res => recorder.onstop = res);
+  recorder.start();
+  if (audioSource) { try { audioSource.start(); } catch {} }
+
+  // Entries sorted by claim time
+  const entries = state.grid
+    .map((c, i) => ({ ...c, idx: i }))
+    .filter(c => c.claimedBy && c.photo)
+    .sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const total = entries.length + 2;
+
+  try {
+    onProgress && onProgress(0, "製作片頭…");
+    await drawIntro(ctx, W, H);
+    await wait(600);
+
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      onProgress && onProgress((i + 1) / total, `照片 ${i+1}/${entries.length}：${e.food.name}`);
+      await drawEntrySlide(ctx, W, H, e);
+    }
+
+    onProgress && onProgress((entries.length + 1) / total, "製作片尾…");
+    await drawOutro(ctx, W, H);
+    await wait(1200);
+
+    onProgress && onProgress(1, "收尾中…");
+  } finally {
+    recorder.stop();
+    if (audioSource) { try { audioSource.stop(); } catch {} }
+    if (audioCtx) { try { audioCtx.close(); } catch {} }
+  }
+
+  await donePromise;
+  return new Blob(chunks, { type: mimeType });
+}
+
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function loadImg(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function drawImgCover(ctx, img, dx, dy, dw, dh) {
+  const ir = img.width / img.height;
+  const dr = dw / dh;
+  let sx, sy, sw, sh;
+  if (ir > dr) {
+    sh = img.height; sw = sh * dr;
+    sx = (img.width - sw) / 2; sy = 0;
+  } else {
+    sw = img.width; sh = sw / dr;
+    sx = 0; sy = (img.height - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
+const FONT_TC = '"PingFang TC", "Microsoft JhengHei", "Noto Sans TC", -apple-system, sans-serif';
+
+async function drawIntro(ctx, W, H) {
+  const r = state.teams.red, b = state.teams.blue;
+  const frames = 18;
+  for (let i = 0; i <= frames; i++) {
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, "#1a0a2e");
+    grad.addColorStop(0.5, "#2d1b3d");
+    grad.addColorStop(1, "#0a0a14");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Decorative corners
+    ctx.strokeStyle = "#ffd15a";
+    ctx.lineWidth = 6;
+    const cornerLen = 80;
+    [[60, 60], [W-60, 60], [60, H-60], [W-60, H-60]].forEach(([x, y], idx) => {
+      const dx = idx % 2 === 0 ? 1 : -1;
+      const dy = idx < 2 ? 1 : -1;
+      ctx.beginPath();
+      ctx.moveTo(x, y + dy * cornerLen);
+      ctx.lineTo(x, y);
+      ctx.lineTo(x + dx * cornerLen, y);
+      ctx.stroke();
+    });
+
+    ctx.globalAlpha = i / frames;
+
+    ctx.font = `bold 32px ${FONT_TC}`;
+    ctx.fillStyle = "#ffd15a";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("嘉義・文化路夜市", W / 2, 200);
+
+    ctx.font = `900 140px ${FONT_TC}`;
+    ctx.fillStyle = "#ffd15a";
+    ctx.shadowColor = "rgba(255,209,90,0.5)";
+    ctx.shadowBlur = 30;
+    ctx.fillText("夜市連線", W / 2, 280);
+    ctx.shadowBlur = 0;
+
+    ctx.font = `bold 42px ${FONT_TC}`;
+    ctx.fillStyle = "white";
+    const modeLabel = state.mode === "feast" ? `🍜 嗑爽戰・累積 ${state.target} 子連線` : `⚡ 閃電戰・先連 ${state.target} 子`;
+    ctx.fillText(modeLabel, W / 2, 460);
+
+    ctx.font = `900 76px ${FONT_TC}`;
+    ctx.fillStyle = "#ff6b87";
+    ctx.textAlign = "right";
+    ctx.fillText(r.name, W / 2 - 60, 600);
+
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText("VS", W / 2, 600);
+
+    ctx.fillStyle = "#70baff";
+    ctx.textAlign = "left";
+    ctx.fillText(b.name, W / 2 + 60, 600);
+
+    ctx.font = `bold 56px ${FONT_TC}`;
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.textAlign = "center";
+    ctx.fillText(`${r.points}  :  ${b.points}`, W / 2, 760);
+
+    const d = new Date();
+    ctx.font = `bold 30px ${FONT_TC}`;
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillText(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`, W / 2, 900);
+
+    ctx.globalAlpha = 1;
+    await wait(28);
+  }
+}
+
+async function drawEntrySlide(ctx, W, H, entry) {
+  let img;
+  try { img = await loadImg(entry.photo); } catch { return; }
+
+  const teamColor = entry.claimedBy === "red" ? "#ff3860" : "#3aa0ff";
+  const teamBright = entry.claimedBy === "red" ? "#ff6b87" : "#70baff";
+  const teamName = state.teams[entry.claimedBy].name;
+  const row = Math.floor(entry.idx / state.gridSize) + 1;
+  const col = (entry.idx % state.gridSize) + 1;
+
+  const fadeFrames = 14;
+  for (let i = 0; i <= fadeFrames; i++) {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = i / fadeFrames;
+
+    drawImgCover(ctx, img, 0, 0, W, H);
+
+    ctx.fillStyle = teamColor;
+    ctx.fillRect(0, 0, W, 14);
+
+    const topG = ctx.createLinearGradient(0, 0, 0, 240);
+    topG.addColorStop(0, "rgba(0,0,0,0.85)");
+    topG.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = topG;
+    ctx.fillRect(0, 14, W, 240);
+
+    ctx.font = `900 54px ${FONT_TC}`;
+    ctx.fillStyle = teamBright;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(teamName, 60, 70);
+
+    ctx.font = `bold 32px ${FONT_TC}`;
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.textAlign = "right";
+    ctx.fillText(`格 ${row}×${col}`, W - 60, 88);
+
+    if (entry.wasBoss) {
+      ctx.font = `900 46px ${FONT_TC}`;
+      ctx.fillStyle = "#ffd15a";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillText("⭐ BOSS", W - 60, 140);
+    }
+
+    const botG = ctx.createLinearGradient(0, H - 380, 0, H);
+    botG.addColorStop(0, "rgba(0,0,0,0)");
+    botG.addColorStop(1, "rgba(0,0,0,0.95)");
+    ctx.fillStyle = botG;
+    ctx.fillRect(0, H - 380, W, 380);
+
+    ctx.font = `400 130px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(entry.food.emoji, 60, H - 180);
+
+    ctx.font = `900 92px ${FONT_TC}`;
+    ctx.fillStyle = "white";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 8;
+    ctx.fillText(entry.food.name, 210, H - 190);
+    ctx.shadowBlur = 0;
+
+    // Custom tag if any
+    if (entry.food.custom) {
+      ctx.font = `bold 32px ${FONT_TC}`;
+      ctx.fillStyle = "#43d787";
+      ctx.fillText("✨ 自訂", 210, H - 120);
+    }
+
+    // Points (not saved per cell here; compute from reasons)
+    let pts = 5;
+    if (entry.photo) pts += 5;
+    if (entry.wasBoss) pts += 10;
+    ctx.font = `900 62px ${FONT_TC}`;
+    ctx.fillStyle = "#ffd15a";
+    ctx.textAlign = "left";
+    ctx.fillText(`+${pts} 分`, 60, H - 70);
+
+    ctx.globalAlpha = 1;
+    await wait(30);
+  }
+
+  await wait(1900);
+}
+
+async function drawOutro(ctx, W, H) {
+  const r = state.teams.red, b = state.teams.blue;
+  const winner = state.winnerTeam ? state.teams[state.winnerTeam] :
+    (r.points > b.points ? r : (b.points > r.points ? b : null));
+  const winnerColor = winner === r ? "#ff6b87" : (winner === b ? "#70baff" : "#ffd15a");
+
+  const frames = 18;
+  for (let i = 0; i <= frames; i++) {
+    const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.8);
+    grad.addColorStop(0, "#2d1b3d");
+    grad.addColorStop(1, "#0a0a14");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.globalAlpha = i / frames;
+
+    ctx.font = `200px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(winner ? "🏆" : "🤝", W/2, 240);
+
+    ctx.font = `900 84px ${FONT_TC}`;
+    ctx.fillStyle = winnerColor;
+    ctx.shadowColor = winnerColor;
+    ctx.shadowBlur = 24;
+    if (state.mode === "feast" && state.winnerTeam) {
+      ctx.fillText(`${winner.name} 累積 ${winner.lineCount} 連線稱霸`, W/2, 460);
+    } else if (state.mode === "feast") {
+      ctx.fillText(`連線平手 (${r.lineCount} : ${b.lineCount})`, W/2, 460);
+    } else if (state.winnerTeam) {
+      ctx.fillText(`${winner.name} ${state.target} 子連線！`, W/2, 460);
+    } else if (winner) {
+      ctx.fillText(`${winner.name} 積分獲勝`, W/2, 460);
+    } else {
+      ctx.fillText("平手！", W/2, 460);
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.font = `900 80px ${FONT_TC}`;
+    ctx.fillStyle = "white";
+    ctx.fillText(`${r.points} : ${b.points}`, W/2, 580);
+
+    const totalClaim = r.claims + b.claims;
+    const totalBoss = r.bossCount + b.bossCount;
+    const totalPhoto = r.photoCount + b.photoCount;
+
+    ctx.font = `bold 42px ${FONT_TC}`;
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText(`🎯 ${totalClaim} 格 ・ ⭐ ${totalBoss} Boss ・ 📸 ${totalPhoto}`, W/2, 720);
+
+    ctx.font = `bold 32px ${FONT_TC}`;
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillText("嘉義 ・ 文化路夜市", W/2, 840);
+
+    ctx.font = `bold 28px ${FONT_TC}`;
+    const d = new Date();
+    ctx.fillText(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`, W/2, 900);
+
+    ctx.globalAlpha = 1;
+    await wait(30);
+  }
+}
+
+// ============================================================
+// MULTI-DEVICE MODE (PeerJS P2P)
+// ============================================================
+const MP_PREFIX = "wenhua-lianxian-v2";
+let mpPeer = null;
+let mpConn = null;
+let mpRole = null;
+let mpMyTeam = null;
+let mpCode = null;
+let mpConnected = false;
+let mpSyncing = false;
+
+function mpActive() { return !!mpRole; }
+function mpCanAct() {
+  if (!mpActive()) return true;
+  if (!mpConnected) return false;
+  return mpMyTeam === state.turn;
+}
+
+function mpSendState() {
+  if (!mpConn || !mpConn.open || mpSyncing) return;
+  try {
+    const snap = JSON.parse(JSON.stringify(state));
+    snap.photoBuffer = null;
+    mpConn.send({ type: "state", state: snap });
+  } catch (e) { console.warn("mp send failed", e); }
+}
+
+function mpHandleData(data) {
+  if (!data || typeof data !== "object") return;
+  if (data.type === "state" && data.state) {
+    mpSyncing = true;
+    state = data.state;
+    saveState();
+    renderAll();
+    mpSyncing = false;
+  } else if (data.type === "hello") {
+    if (mpRole === "host" && data.teamName) {
+      state.teams.blue.name = data.teamName;
+      mpSendState();
+      renderAll();
+    }
+  }
+}
+
+function mpOnConnection(conn) {
+  mpConn = conn;
+  conn.on("open", () => {
+    mpConnected = true;
+    renderMPChip();
+    renderMPLock();
+    toast("✅ 對手已加入", "success");
+    if (mpRole === "host") {
+      mpSendState();
+      $("#mp-modal").classList.remove("show");
+      showScreen("screen-game");
+      renderAll();
+    }
+  });
+  conn.on("data", mpHandleData);
+  conn.on("close", () => {
+    mpConnected = false;
+    toast("❌ 對手斷線", "error");
+    renderMPChip();
+    renderMPLock();
+  });
+  conn.on("error", e => console.warn("mp conn error", e));
+}
+
+function mpCreateRoom(opts, attempt = 0) {
+  const code = String(Math.floor(1000 + Math.random() * 9000));
+  const hostId = `${MP_PREFIX}-${code}`;
+  if (mpPeer) { try { mpPeer.destroy(); } catch {} }
+  mpPeer = new Peer(hostId);
+  mpCode = code;
+  mpRole = "host";
+  mpMyTeam = "red";
+
+  // Initialize state like btn-start would
+  state = freshState();
+  state.teams.red.name = opts.red;
+  state.teams.blue.name = opts.blue;
+  state.target = opts.target;
+  state.mode = opts.mode;
+  state.customFoods = opts.customFoods;
+  rotateBossNames();
+  generateGrid();
+
+  $("#mp-code-big").textContent = code;
+  $("#mp-modal-title").textContent = "🎴 房間已開";
+  $("#mp-modal-status").textContent = "等待對手加入…";
+  $("#mp-modal").classList.add("show");
+
+  mpPeer.on("open", () => renderMPChip());
+  mpPeer.on("connection", conn => mpOnConnection(conn));
+  mpPeer.on("error", e => {
+    if (e.type === "unavailable-id" && attempt < 3) {
+      setTimeout(() => mpCreateRoom(opts, attempt + 1), 200);
+    } else {
+      toast("連線錯誤: " + (e.type || e.message), "error");
+      mpTeardown();
+      $("#mp-modal").classList.remove("show");
+    }
+  });
+}
+
+function mpJoinRoom(code, blueName) {
+  if (mpPeer) { try { mpPeer.destroy(); } catch {} }
+  mpPeer = new Peer();
+  mpCode = code;
+  mpRole = "guest";
+  mpMyTeam = "blue";
+
+  $("#mp-code-big").textContent = code;
+  $("#mp-modal-title").textContent = "✈️ 加入房間";
+  $("#mp-modal-status").textContent = "連線中…";
+  $("#mp-modal").classList.add("show");
+
+  mpPeer.on("open", () => {
+    const hostId = `${MP_PREFIX}-${code}`;
+    const conn = mpPeer.connect(hostId, { reliable: true });
+    mpConn = conn;
+    conn.on("open", () => {
+      mpConnected = true;
+      $("#mp-modal-status").textContent = "✅ 已連上，等待開始…";
+      toast("✅ 已進入房間", "success");
+      conn.send({ type: "hello", teamName: blueName || "藍隊" });
+      renderMPChip();
+    });
+    conn.on("data", data => {
+      mpHandleData(data);
+      if (data.type === "state" && $("#mp-modal").classList.contains("show")) {
+        $("#mp-modal").classList.remove("show");
+        showScreen("screen-game");
+        renderAll();
+      }
+    });
+    conn.on("close", () => {
+      mpConnected = false;
+      toast("❌ 主持斷線", "error");
+      renderMPChip();
+      renderMPLock();
+    });
+    conn.on("error", e => toast("加入失敗: " + e.type, "error"));
+  });
+  mpPeer.on("error", e => {
+    toast("連線錯誤: " + (e.type || e.message), "error");
+    $("#mp-modal-status").textContent = "❌ " + (e.type || "失敗");
+  });
+}
+
+function mpTeardown() {
+  try { mpConn?.close(); } catch {}
+  try { mpPeer?.destroy(); } catch {}
+  mpPeer = null; mpConn = null;
+  mpRole = null; mpMyTeam = null; mpCode = null; mpConnected = false;
+  renderMPChip();
+  renderMPLock();
+}
+
+function renderMPChip() {
+  const chip = $("#mp-chip");
+  if (!chip) return;
+  if (!mpActive()) { chip.classList.add("hidden"); return; }
+  chip.classList.remove("hidden", "online", "offline", "waiting");
+  if (mpConnected) chip.classList.add("online");
+  else if (mpPeer) chip.classList.add("waiting");
+  else chip.classList.add("offline");
+  const roleLabel = mpRole === "host" ? "主持（紅）" : "加入（藍）";
+  const statusLabel = mpConnected ? "連線中" : (mpPeer ? "等待" : "離線");
+  chip.innerHTML = `<span class="dot"></span>${roleLabel} ・ ${statusLabel} ・ ${mpCode || ""}`;
+}
+
+function renderMPLock() {
+  const lock = $("#mp-lock");
+  if (!lock) return;
+  if (!mpActive() || !mpConnected || state.finished) { lock.style.display = "none"; return; }
+  if (mpMyTeam === state.turn) { lock.style.display = "none"; return; }
+  lock.style.display = "flex";
+  const otherName = state.teams[state.turn]?.name || (state.turn === "red" ? "紅隊" : "藍隊");
+  $("#mp-lock-title").textContent = `等待 ${otherName} 出招…`;
+}
+
+// Wrap saveState to auto-sync
+const _origSaveState = saveState;
+saveState = function() {
+  _origSaveState();
+  if (mpActive() && mpConnected && !mpSyncing) mpSendState();
+  renderMPLock();
+};
+
+// Wrap renderAll
+const _origRenderAll = renderAll;
+renderAll = function() {
+  _origRenderAll();
+  renderMPChip();
+  renderMPLock();
+};
+
+// Setup screen wiring
+$$("#opt-mp .option-chip").forEach(btn => {
+  btn.addEventListener("click", () => {
+    $$("#opt-mp .option-chip").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const mode = btn.dataset.mp;
+    $("#mp-guest-box").classList.toggle("hidden", mode !== "guest");
+    $("#mp-hint").style.display = mode === "local" ? "none" : "block";
+    const startBtn = $("#btn-start");
+    if (mode === "host") startBtn.textContent = "🎴 開 房 間";
+    else if (mode === "guest") startBtn.textContent = "🔑 加 入 房 間";
+    else startBtn.textContent = "生 成 棋 盤";
+  });
+});
+
+$("#mp-modal-close").addEventListener("click", () => {
+  mpTeardown();
+  $("#mp-modal").classList.remove("show");
+});
+$("#mp-cancel").addEventListener("click", () => {
+  mpTeardown();
+  $("#mp-modal").classList.remove("show");
+});
+
+// Intercept btn-start in capture phase
+$("#btn-start").addEventListener("click", e => {
+  const mpMode = $("#opt-mp .option-chip.active")?.dataset.mp || "local";
+  if (mpMode === "local") return;
+  e.stopImmediatePropagation();
+  const red  = $("#setup-red").value.trim()  || "紅隊";
+  const blue = $("#setup-blue").value.trim() || "藍隊";
+  const targetBtn = $("#opt-target .option-chip.active");
+  const target = parseInt(targetBtn?.dataset.opt || "5", 10);
+  const modeBtn = $("#opt-mode .option-chip.active");
+  const gameMode = modeBtn?.dataset.opt || "feast";
+  const custom = parseCustomFoods($("#custom-foods").value);
+  if (mpMode === "host") {
+    mpCreateRoom({ red, blue, target, mode: gameMode, customFoods: custom });
+  } else if (mpMode === "guest") {
+    const code = $("#mp-code-input").value.trim();
+    if (!/^\d{4}$/.test(code)) { toast("請輸入 4 位數字房號", "error"); return; }
+    mpJoinRoom(code, blue);
+  }
+}, true);
+
+// Guard action handlers with turn-lock
+["#btn-confirm", "#btn-swap", "#btn-skip", "#btn-reshuffle", "#btn-rotate-boss", "#btn-addfood", "#btn-end"].forEach(sel => {
+  const btn = $(sel);
+  if (!btn) return;
+  btn.addEventListener("click", e => {
+    // Allow meta actions (rotate boss, reshuffle, end, addfood) anytime; block claim/swap when not your turn
+    const isTurnOnly = ["#btn-confirm", "#btn-swap", "#btn-skip"].includes(sel);
+    if (mpActive() && isTurnOnly && !mpCanAct()) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      toast("⏳ 還不是你的回合", "error");
+    }
+  }, true);
+});
+
+// ============================================================
+// INIT
+// ============================================================
+// Nothing to render initially on setup screen besides resume check
+</script>
+</body>
+</html>
