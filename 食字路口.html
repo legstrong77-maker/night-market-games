@@ -2276,9 +2276,25 @@ function confirmEat({ forced = false } = {}) {
   // Check achievements
   checkAchievements();
 
+  const photoToShare = state.photoBuffer;
+  const foodName = food.name;
+
   // Reset & next turn
   clearSelection();
   switchTurn();
+
+  if (photoToShare && navigator.share && navigator.canShare) {
+    fetch(photoToShare).then(res => res.blob()).then(blob => {
+      const f = new File([blob], foodName + ".jpg", { type: "image/jpeg" });
+      if (navigator.canShare({ files: [f] })) {
+        navigator.share({
+          title: "食字路口",
+          text: `我吃到了：${foodName}！`,
+          files: [f]
+        }).catch(err => { if (err.name !== "AbortError") console.warn("Share failed:", err); });
+      }
+    }).catch(e => console.warn(e));
+  }
 }
 
 function checkAchievements() {
@@ -2359,16 +2375,6 @@ $("#photo-input").addEventListener("change", async e => {
     const data = await resizeImage(file);
     state.photoBuffer = data;
     renderSelectedRow();
-    
-    // Auto download to user's gallery
-    const a = document.createElement("a");
-    a.href = data;
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
-    a.download = "食字路口_" + timeStr + ".jpg";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   } catch {
     toast("照片處理失敗", "error");
   }
