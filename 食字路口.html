@@ -707,6 +707,18 @@ input:focus { border-color: var(--gold); }
   padding: 8px 4px;
   font-size: 18px;
 }
+.btn-share-photo {
+  background: linear-gradient(135deg, #06C755, #05a847);
+  color: white;
+  padding: 12px 14px;
+  font-weight: 900;
+  border-radius: 10px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(6, 199, 85, 0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-share-photo:active { transform: scale(0.95); }
 
 .action-row {
   display: flex;
@@ -1679,6 +1691,7 @@ html { scroll-behavior: smooth; }
     </label>
     <input id="photo-input" type="file" accept="image/*" capture="environment" style="display:none;">
     <button class="btn-confirm" id="btn-confirm">吃！</button>
+    <button class="btn-share-photo" id="btn-share-photo" style="display:none;">💬 LINE</button>
     <button class="btn-cancel" id="btn-cancel">✕</button>
   </div>
 
@@ -2335,6 +2348,7 @@ $("#btn-confirm").addEventListener("click", () => {
   }
 });
 $("#btn-cancel").addEventListener("click", clearSelection);
+$("#btn-share-photo").addEventListener("click", sharePhotoFile);
 
 $("#btn-force").addEventListener("click", () => {
   if (!selectedFood) { toast("先選一道食物", "error"); return; }
@@ -2676,6 +2690,10 @@ function renderSelectedRow() {
     if (matched || isFirst) btn.textContent = "吃！";
     else btn.textContent = "強闖";
   }
+
+  // LINE share button: only visible when original file is stored
+  const shareBtn = $("#btn-share-photo");
+  shareBtn.style.display = state.originalPhotoFile ? "inline-flex" : "none";
 }
 
 function renderAchieves() {

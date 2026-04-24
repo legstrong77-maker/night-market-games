@@ -579,6 +579,18 @@ input:focus, textarea:focus { border-color: var(--gold); }
   flex-shrink: 0;
   margin-left: 4px;
 }
+.btn-share-photo {
+  background: linear-gradient(135deg, #06C755, #05a847);
+  color: white;
+  padding: 14px 14px;
+  font-weight: 900;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(6, 199, 85, 0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-share-photo:active { transform: scale(0.95); }
 .btn-swap:disabled {
   background: var(--bg-elev);
   color: var(--text-mute);
@@ -1460,6 +1472,7 @@ html { scroll-behavior: smooth; }
     </label>
     <input id="photo-input" type="file" accept="image/*" capture="environment" style="display:none;">
     <button class="btn-confirm" id="btn-confirm">吃！</button>
+    <button class="btn-share-photo" id="btn-share-photo" style="display:none;">💬 LINE</button>
     <button class="btn-swap" id="btn-swap">🔄 換</button>
     <button class="btn-cancel" id="btn-cancel">✕</button>
   </div>
@@ -2169,6 +2182,7 @@ function longestLineForTeam(team) {
 $("#btn-swap").addEventListener("click", swapCellFood);
 $("#btn-confirm").addEventListener("click", claimCell);
 $("#btn-cancel").addEventListener("click", clearSelection);
+$("#btn-share-photo").addEventListener("click", sharePhotoFile);
 
 $("#btn-skip").addEventListener("click", () => {
   if (!confirm("跳過本回合？對手將直接行動。")) return;
@@ -2504,6 +2518,10 @@ function renderSelected() {
     confBtn.style.opacity = "";
     confBtn.style.cursor = "pointer";
   }
+
+  // LINE share button: only visible when we have the original file
+  const shareBtn = $("#btn-share-photo");
+  shareBtn.style.display = state.originalPhotoFile ? "inline-flex" : "none";
 }
 
 function updateStats() {
