@@ -2775,7 +2775,13 @@ $("#video-modal").addEventListener("click", e => {
 });
 
 $("#btn-video-start").addEventListener("click", async () => {
-  const file = $("#video-music-input").files[0];
+  let file = $("#video-music-input").files[0];
+  if (!file) {
+    try {
+      const resp = await fetch("bgm.mp3");
+      if (resp.ok) file = await resp.blob();
+    } catch(e) { console.warn("Cannot load default BGM:", e); }
+  }
   $("#video-setup").style.display = "none";
   $("#video-progress-wrap").style.display = "block";
 
