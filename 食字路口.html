@@ -2370,6 +2370,40 @@ $("#btn-end").addEventListener("click", () => {
 });
 
 // Photo
+async function saveOriginalPhoto(file) {
+  try {
+    const pad = n => String(n).padStart(2, "0");
+    const d = new Date();
+    const ts = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    let foodName = "food";
+    if (selectedFood && selectedFood.name) {
+      foodName = String(selectedFood.name).replace(/[\\/:*?"<>|\s]+/g, "_");
+    }
+    const extMatch = (file.name || "").match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1] : (file.type && file.type.split("/")[1]) || "jpg";
+    const filename = `食字_${ts}_${foodName}.${ext}`;
+
+    try {
+      const shareFile = new File([file], filename, { type: file.type || "image/jpeg" });
+      if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+        await navigator.share({ files: [shareFile], title: foodName });
+        return;
+      }
+    } catch (shareErr) {
+      if (shareErr && shareErr.name === "AbortError") return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (err) { console.warn("save original failed", err); }
+}
+
 $("#photo-input").addEventListener("change", async e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -2380,6 +2414,7 @@ $("#photo-input").addEventListener("change", async e => {
   } catch {
     toast("照片處理失敗", "error");
   }
+  saveOriginalPhoto(file);
 });
 
 // ============================================================

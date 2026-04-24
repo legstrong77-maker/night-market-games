@@ -538,14 +538,14 @@ input:focus, textarea:focus { border-color: var(--gold); }
 }
 
 .btn-photo {
-  width: 44px; height: 44px;
+  width: 64px; height: 64px;
   background: var(--bg-elev);
   border: 2px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 32px;
   overflow: hidden;
   position: relative;
   flex-shrink: 0;
@@ -559,21 +559,25 @@ input:focus, textarea:focus { border-color: var(--gold); }
 .btn-confirm {
   background: linear-gradient(135deg, var(--green), #2eb370);
   color: white;
-  padding: 12px 16px;
+  padding: 18px 24px;
   font-weight: 900;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 17px;
   box-shadow: 0 4px 12px rgba(67, 215, 135, 0.3);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .btn-swap {
   background: linear-gradient(135deg, var(--purple), #7d4dc7);
   color: white;
-  padding: 12px 14px;
-  font-weight: 900;
-  border-radius: 10px;
-  font-size: 13px;
+  padding: 6px 8px;
+  font-weight: 700;
+  border-radius: 8px;
+  font-size: 11px;
   white-space: nowrap;
+  opacity: 0.75;
+  flex-shrink: 0;
+  margin-left: 4px;
 }
 .btn-swap:disabled {
   background: var(--bg-elev);
@@ -1455,8 +1459,8 @@ html { scroll-behavior: smooth; }
       <img id="photo-preview" style="display:none;">
     </label>
     <input id="photo-input" type="file" accept="image/*" capture="environment" style="display:none;">
-    <button class="btn-swap" id="btn-swap">🔄 換</button>
     <button class="btn-confirm" id="btn-confirm">吃！</button>
+    <button class="btn-swap" id="btn-swap">🔄 換</button>
     <button class="btn-cancel" id="btn-cancel">✕</button>
   </div>
 
@@ -2285,14 +2289,54 @@ $("#btn-addfood").addEventListener("click", () => {
 });
 
 // Photo
+async function saveOriginalPhoto(file) {
+  try {
+    const pad = n => String(n).padStart(2, "0");
+    const d = new Date();
+    const ts = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    let foodName = "food";
+    if (selectedIdx != null && state.grid && state.grid[selectedIdx]) {
+      foodName = (state.grid[selectedIdx].name || "food").replace(/[\\/:*?"<>|\s]+/g, "_");
+    }
+    const extMatch = (file.name || "").match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1] : (file.type && file.type.split("/")[1]) || "jpg";
+    const filename = `夜市_${ts}_${foodName}.${ext}`;
+
+    // Try Web Share API with files (iOS/Android 可直接存相簿)
+    try {
+      const shareFile = new File([file], filename, { type: file.type || "image/jpeg" });
+      if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+        await navigator.share({ files: [shareFile], title: foodName });
+        return;
+      }
+    } catch (shareErr) {
+      // 使用者取消分享或不支援 → 退回下載
+      if (shareErr && shareErr.name === "AbortError") return;
+    }
+
+    // Fallback：觸發下載
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (err) { console.warn("save original failed", err); }
+}
+
 $("#photo-input").addEventListener("change", async e => {
   const file = e.target.files[0];
   if (!file) return;
+  // 先把遊戲用的縮圖處理好（不等原檔儲存）
   try {
     const data = await resizeImage(file);
     state.photoBuffer = data;
     renderSelected();
   } catch { toast("照片處理失敗", "error"); }
+  // 再叫出原檔分享/下載（不阻塞 UI）
+  saveOriginalPhoto(file);
 });
 
 // ============================================================
