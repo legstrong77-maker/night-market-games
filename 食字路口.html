@@ -1530,6 +1530,7 @@ button:focus:not(:focus-visible) { outline: none; }
 
 html { scroll-behavior: smooth; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -1733,6 +1734,7 @@ html { scroll-behavior: smooth; }
   </div>
 
   <button class="btn-primary" id="btn-make-video" style="margin-bottom: 10px; background: linear-gradient(135deg, #a875ff, #ff3860 60%, #ffd15a);">🎬 生成戰績影片</button>
+  <button class="btn-primary" id="btn-download-all" style="margin-bottom: 10px; background: linear-gradient(135deg, #10B981, #3B82F6);">📥 一鍵打包所有照片</button>
   <button class="btn-primary" id="btn-share" style="margin-bottom: 10px;">📤 分享戰績</button>
   <button class="btn-ghost" id="btn-restart">🔄 再玩一場</button>
 </section>
@@ -2700,6 +2702,36 @@ $("#btn-restart").addEventListener("click", () => {
   $("#setup-blue").value = "";
   showScreen("screen-setup");
   checkResume();
+});
+
+$("#btn-download-all").addEventListener("click", async () => {
+  const allEaten = [...state.teams.red.eaten, ...state.teams.blue.eaten];
+  const eatenWithPhoto = allEaten.filter(f => f.photo);
+  if (eatenWithPhoto.length === 0) { toast("沒有拍任何照片喔！", "error"); return; }
+  
+  toast(`開始打包 ${eatenWithPhoto.length} 張照片...`, "bonus");
+  const zip = new JSZip();
+  let count = 0;
+  for (const item of eatenWithPhoto) {
+    const base64Data = item.photo.split(',')[1];
+    if (base64Data) {
+      zip.file(`${item.team === 'red' ? '紅隊' : '藍隊'}_${item.name}.jpg`, base64Data, {base64: true});
+      count++;
+    }
+  }
+  try {
+    const content = await zip.generateAsync({type: "blob"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(content);
+    a.download = `食字路口_所有照片_${new Date().toISOString().slice(0,10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast(`✅ 打包完成！共 ${count} 張`, "success");
+  } catch(e) {
+    console.error(e);
+    toast("打包失敗", "error");
+  }
 });
 
 $("#btn-share").addEventListener("click", async () => {
