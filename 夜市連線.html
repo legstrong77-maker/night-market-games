@@ -1685,6 +1685,8 @@ function freshState() {
     turn: "red",
     grid: [],        // cell: { food, claimedBy, photo, swapCount, wasBoss, ts }
     photoBuffer: null,
+    originalPhotoFile: null,
+    originalPhotoFilename: null,
     customFoods: [],
     bossNames: [],   // 目前 5 道隨機 Boss 小吃
     lastBossRotateAt: null,
@@ -1784,6 +1786,8 @@ function saveState() {
   try {
     const slim = JSON.parse(JSON.stringify(state));
     slim.photoBuffer = null;
+    slim.originalPhotoFile = null;
+    slim.originalPhotoFilename = null;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
   } catch (e) { console.warn("save failed", e); }
 }
@@ -1974,7 +1978,7 @@ function otherKey() { return state.turn === "red" ? "blue" : "red"; }
 
 function switchTurn() {
   state.turn = otherKey();
-  state.photoBuffer = null;
+  state.photoBuffer = null; state.originalPhotoFile = null; state.originalPhotoFilename = null;
   selectedIdx = null;
   saveState();
   renderAll();
@@ -1989,14 +1993,14 @@ function selectCell(idx) {
     return;
   }
   selectedIdx = idx;
-  state.photoBuffer = null;
+  state.photoBuffer = null; state.originalPhotoFile = null; state.originalPhotoFilename = null;
   renderSelected();
   renderGrid();
 }
 
 function clearSelection() {
   selectedIdx = null;
-  state.photoBuffer = null;
+  state.photoBuffer = null; state.originalPhotoFile = null; state.originalPhotoFilename = null;
   renderSelected();
   renderGrid();
 }
@@ -2238,7 +2242,7 @@ $("#btn-reshuffle").addEventListener("click", () => {
   state.winnerTeam = null;
   state.finished = false;
   selectedIdx = null;
-  state.photoBuffer = null;
+  state.photoBuffer = null; state.originalPhotoFile = null; state.originalPhotoFilename = null;
   rotateBossNames();
   generateGrid();
   saveState();
@@ -2289,54 +2293,73 @@ $("#btn-addfood").addEventListener("click", () => {
 });
 
 // Photo
-async function saveOriginalPhoto(file) {
+function buildPhotoFilename(file) {
+  const pad = n => String(n).padStart(2, "0");
+  const d = new Date();
+  const ts = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  let foodName = "food";
+  if (selectedIdx != null && state.grid && state.grid[selectedIdx]) {
+    foodName = (state.grid[selectedIdx].name || "food").replace(/[\\/:*?"<>|\s]+/g, "_");
+  }
+  const extMatch = (file.name || "").match(/\.([a-zA-Z0-9]+)$/);
+  const ext = extMatch ? extMatch[1] : (file.type && file.type.split("/")[1]) || "jpg";
+  return `夜市_${ts}_${foodName}.${ext}`;
+}
+
+// 靜默下載原檔到手機（0 額外點擊）
+function downloadOriginalPhoto(file, filename) {
   try {
-    const pad = n => String(n).padStart(2, "0");
-    const d = new Date();
-    const ts = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-    let foodName = "food";
-    if (selectedIdx != null && state.grid && state.grid[selectedIdx]) {
-      foodName = (state.grid[selectedIdx].name || "food").replace(/[\\/:*?"<>|\s]+/g, "_");
-    }
-    const extMatch = (file.name || "").match(/\.([a-zA-Z0-9]+)$/);
-    const ext = extMatch ? extMatch[1] : (file.type && file.type.split("/")[1]) || "jpg";
-    const filename = `夜市_${ts}_${foodName}.${ext}`;
-
-    // Try Web Share API with files (iOS/Android 可直接存相簿)
-    try {
-      const shareFile = new File([file], filename, { type: file.type || "image/jpeg" });
-      if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
-        await navigator.share({ files: [shareFile], title: foodName });
-        return;
-      }
-    } catch (shareErr) {
-      // 使用者取消分享或不支援 → 退回下載
-      if (shareErr && shareErr.name === "AbortError") return;
-    }
-
-    // Fallback：觸發下載
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    a.style.display = "none";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-  } catch (err) { console.warn("save original failed", err); }
+    return true;
+  } catch (err) { console.warn("download failed", err); return false; }
+}
+
+// 使用者按「📤 分享」時才跳分享面板（LINE 群組、存相簿等）
+async function sharePhotoFile() {
+  const file = state.originalPhotoFile;
+  const filename = state.originalPhotoFilename;
+  if (!file) { toast("目前沒有照片可分享", "error"); return; }
+  try {
+    const shareFile = new File([file], filename, { type: file.type || "image/jpeg" });
+    if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+      await navigator.share({ files: [shareFile], title: filename });
+      return;
+    }
+    downloadOriginalPhoto(file, filename);
+    toast("已下載原檔 📥", "bonus");
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+    console.warn("share failed", err);
+    toast("分享失敗，改為下載", "error");
+    downloadOriginalPhoto(file, filename);
+  }
 }
 
 $("#photo-input").addEventListener("change", async e => {
   const file = e.target.files[0];
   if (!file) return;
-  // 先把遊戲用的縮圖處理好（不等原檔儲存）
+  const filename = buildPhotoFilename(file);
+  state.originalPhotoFile = file;
+  state.originalPhotoFilename = filename;
+
+  // 遊戲縮圖
   try {
     const data = await resizeImage(file);
     state.photoBuffer = data;
     renderSelected();
   } catch { toast("照片處理失敗", "error"); }
-  // 再叫出原檔分享/下載（不阻塞 UI）
-  saveOriginalPhoto(file);
+
+  // 靜默下載原檔
+  const ok = downloadOriginalPhoto(file, filename);
+  if (ok) toast("原檔已存入手機 📥（可在下載資料夾 / 相簿找到）", "bonus");
 });
 
 // ============================================================
@@ -3149,6 +3172,8 @@ function mpSendState() {
   try {
     const snap = JSON.parse(JSON.stringify(state));
     snap.photoBuffer = null;
+    snap.originalPhotoFile = null;
+    snap.originalPhotoFilename = null;
     mpConn.send({ type: "state", state: snap });
   } catch (e) { console.warn("mp send failed", e); }
 }
