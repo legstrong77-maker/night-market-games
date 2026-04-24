@@ -2359,6 +2359,16 @@ $("#photo-input").addEventListener("change", async e => {
     const data = await resizeImage(file);
     state.photoBuffer = data;
     renderSelectedRow();
+    
+    // Auto download to user's gallery
+    const a = document.createElement("a");
+    a.href = data;
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
+    a.download = "食字路口_" + timeStr + ".jpg";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } catch {
     toast("照片處理失敗", "error");
   }
